@@ -16,7 +16,6 @@
 // %Tag(INCLUDE_STATEMENTS)%
 #include <algorithm>
 #include <vector>
-//#include <string>
 
 #include <ros/ros.h>
 
@@ -30,6 +29,18 @@
 #include <std_msgs/String.h>
 #include <std_srvs/Trigger.h>
 #include <trajectory_msgs/JointTrajectory.h>
+#include <control_msgs/JointTrajectoryControllerState.h>
+
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+
+#include <moveit_msgs/DisplayRobotState.h>
+#include <moveit_msgs/DisplayTrajectory.h>
+
+#include <moveit_msgs/AttachedCollisionObject.h>
+#include <moveit_msgs/CollisionObject.h>
+
+#include <moveit_visual_tools/moveit_visual_tools.h>
 // %EndTag(INCLUDE_STATEMENTS)%
 
 // %Tag(START_COMP)%
@@ -99,7 +110,7 @@ public:
     // %Tag(CB_CLASS)%
     /// Called when a new JointState message is received.
     void right_arm_joint_state_callback(
-    const sensor_msgs::JointState::ConstPtr & joint_state_msg)
+    const control_msgs::JointTrajectoryControllerState::ConstPtr & joint_state_msg)
     {
        ROS_INFO_STREAM_THROTTLE(10,
                                 "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
@@ -113,7 +124,7 @@ public:
     }
     
     void left_arm_joint_state_callback(
-    const sensor_msgs::JointState::ConstPtr & joint_state_msg)
+    const control_msgs::JointTrajectoryControllerState::ConstPtr & joint_state_msg)
     {
        ROS_INFO_STREAM_THROTTLE(10,
                                 "Joint States left arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
@@ -132,7 +143,7 @@ public:
        ROS_INFO_STREAM_THROTTLE(10,
                                 "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
        // ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
-       right_arm_current_joint_states_ = *joint_state_msg;
+       gantry_current_joint_states_ = *joint_state_msg;
        if (!gantry_has_been_zeroed_) {
           gantry_has_been_zeroed_ = true;
           ROS_INFO("Sending gantry to zero joint positions...");
@@ -146,7 +157,7 @@ public:
     void send_arm_to_zero_state(ros::Publisher & joint_trajectory_publisher, int arm_no) {
        // Create a message to send.
        trajectory_msgs::JointTrajectory msg;
-       std::string arm = (arm_no == 1) ? "right_arm_" : "left_arm_";
+       std::string arm = (arm_no == 1) ? "right_" : "left_";
        // Fill the names of the joints to be controlled.
        // Note that the vacuum_gripper_joint is not controllable.
        msg.joint_names.clear();
@@ -191,8 +202,8 @@ private:
     ros::Publisher left_arm_joint_trajectory_publisher_;
     std::vector<nist_gear::Order> received_orders_;
     sensor_msgs::JointState gantry_current_joint_states_;
-    sensor_msgs::JointState right_arm_current_joint_states_;
-    sensor_msgs::JointState left_arm_current_joint_states_;
+    control_msgs::JointTrajectoryControllerState right_arm_current_joint_states_;
+    control_msgs::JointTrajectoryControllerState left_arm_current_joint_states_;
     bool right_arm_has_been_zeroed_;
     bool left_arm_has_been_zeroed_;
     bool gantry_has_been_zeroed_;
@@ -275,6 +286,51 @@ int main(int argc, char ** argv) {
    ROS_INFO("Setup complete.");
    start_competition(node);
    ros::spin();  // This executes callbacks on new data until ctrl-c.
+   
+   // BEGIN_TUTORIAL
+   //
+   // Setup
+   // ^^^^^
+   //
+   // MoveIt operates on sets of joints called "planning groups" and stores them in an object called
+   // the `JointModelGroup`. Throughout MoveIt the terms "planning group" and "joint model group"
+   // are used interchangably.
+   static const std::string PLANNING_GROUP_GANTRY = "gantry";
+   static const std::string PLANNING_GROUP_RIGHT = "right_arm";
+   static const std::string PLANNING_GROUP_LEFT = "left_arm";
+   
+   // The :planning_interface:`MoveGroupInterface` class can be easily
+   // setup using just the name of the planning group you would like to control and plan for.
+   moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP_RIGHT);
+   
+   // We will use the :planning_interface:`PlanningSceneInterface`
+   // class to add and remove collision objects in our "virtual world" scene
+   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+   
+   // Raw pointers are frequently used to refer to the planning group for improved performance.
+   const moveit::core::JointModelGroup* joint_model_group =
+   move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP_RIGHT);
+   
+   // Visualization
+   // ^^^^^^^^^^^^^
+   //
+   // The package MoveItVisualTools provides many capabilities for visualizing objects, robots,
+   // and trajectories in RViz as well as debugging tools such as step-by-step introspection of a script.
+   namespace rvt = rviz_visual_tools;
+   moveit_visual_tools::MoveItVisualTools visual_tools("panda_link0");
+   visual_tools.deleteAllMarkers();
+   
+   // Remote control is an introspection tool that allows users to step through a high level script
+   // via buttons and keyboard shortcuts in RViz
+   visual_tools.loadRemoteControl();
+   
+   // RViz provides many types of markers, in this demo we will use text, cylinders, and spheres
+   Eigen::Isometry3d text_pose = Eigen::Isometry3d::Identity();
+   text_pose.translation().z() = 1.0;
+   visual_tools.publishText(text_pose, "MoveGroupInterface Demo", rvt::WHITE, rvt::XLARGE);
+   
+   // Batch publishing is used to reduce the number of messages being sent to RViz for large visualizations
+   visual_tools.trigger();
    
    return 0;
 }
