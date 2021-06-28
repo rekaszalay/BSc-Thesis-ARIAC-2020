@@ -7,6 +7,13 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_srvs
   trajectory_msgs
+  interactive_markers
+  moveit_core
+  moveit_ros_planning
+  moveit_ros_planning_interface
+  moveit_ros_perception
+  rviz_visual_tools
+  moveit_visual_tools
 )
 
 ## Uncomment this if the package has a setup.py. This macro ensures

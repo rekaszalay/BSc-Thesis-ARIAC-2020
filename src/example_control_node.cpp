@@ -103,7 +103,7 @@ public:
     
     /// Called when a new Order message is received.
     void order_callback(const nist_gear::Order::ConstPtr & order_msg) {
-       ROS_INFO_STREAM("Received order:\n" << *order_msg);
+       //ROS_INFO_STREAM("Received order:\n" << *order_msg);
        received_orders_.push_back(*order_msg);
     }
     
@@ -112,37 +112,37 @@ public:
     void right_arm_joint_state_callback(
     const control_msgs::JointTrajectoryControllerState::ConstPtr & joint_state_msg)
     {
-       ROS_INFO_STREAM_THROTTLE(10,
-                                "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
-       // ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
+       //ROS_INFO_STREAM_THROTTLE(10,
+       //                         "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
+       //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
        right_arm_current_joint_states_ = *joint_state_msg;
        if (!right_arm_has_been_zeroed_) {
           right_arm_has_been_zeroed_ = true;
           ROS_INFO("Sending right arm to zero joint positions...");
-          send_arm_to_zero_state(right_arm_joint_trajectory_publisher_, 1);
+          //send_arm_to_zero_state(right_arm_joint_trajectory_publisher_, 1);
        }
     }
     
     void left_arm_joint_state_callback(
     const control_msgs::JointTrajectoryControllerState::ConstPtr & joint_state_msg)
     {
-       ROS_INFO_STREAM_THROTTLE(10,
-                                "Joint States left arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
-       // ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
+       //ROS_INFO_STREAM_THROTTLE(10,
+       //                         "Joint States left arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
+       //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
        left_arm_current_joint_states_ = *joint_state_msg;
        if (!left_arm_has_been_zeroed_) {
           left_arm_has_been_zeroed_ = true;
           ROS_INFO("Sending left arm to zero joint positions...");
-          send_arm_to_zero_state(left_arm_joint_trajectory_publisher_, 2);
+          //send_arm_to_zero_state(left_arm_joint_trajectory_publisher_, 2);
        }
     }
     
     void gantry_joint_state_callback (
     const sensor_msgs::JointState::ConstPtr & joint_state_msg)
     {
-       ROS_INFO_STREAM_THROTTLE(10,
-                                "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
-       // ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
+       //ROS_INFO_STREAM_THROTTLE(10,
+       //                         "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
+       //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
        gantry_current_joint_states_ = *joint_state_msg;
        if (!gantry_has_been_zeroed_) {
           gantry_has_been_zeroed_ = true;
@@ -176,7 +176,7 @@ public:
        // How long to take getting to the point (floating point seconds).
        msg.points[0].time_from_start = ros::Duration(0.001);
        ROS_INFO_STREAM("Sending command:\n" << msg);
-       joint_trajectory_publisher.publish(msg);
+       //joint_trajectory_publisher.publish(msg);
     }
     // %EndTag(ARM_ZERO)%
     
@@ -285,7 +285,31 @@ int main(int argc, char ** argv) {
    
    ROS_INFO("Setup complete.");
    start_competition(node);
-   ros::spin();  // This executes callbacks on new data until ctrl-c.
+   ros::AsyncSpinner spinner(1);
+   spinner.start();
+   ROS_INFO_NAMED("The robot description ", node.hasParam("robot_description") ? "exists." : "doesn't exist");
+   //ros::spin();  // This executes callbacks on new data until ctrl-c.
+   
+   /**/robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+   const moveit::core::RobotModelPtr& kinematic_model = robot_model_loader.getModel();
+   ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
+   
+   moveit::core::RobotStatePtr kinematic_state(new moveit::core::RobotState(kinematic_model));
+   kinematic_state->setToDefaultValues();
+   const moveit::core::JointModelGroup* joint_model_group_g = kinematic_model->getJointModelGroup("Gantry");
+   const moveit::core::JointModelGroup* joint_model_group_fr = kinematic_model->getJointModelGroup("Full_Robot");
+   const moveit::core::JointModelGroup* joint_model_group_ra = kinematic_model->getJointModelGroup("Right_Arm");
+   const moveit::core::JointModelGroup* joint_model_group_la = kinematic_model->getJointModelGroup("Left_Arm");
+   const moveit::core::JointModelGroup* joint_model_group_ree = kinematic_model->getJointModelGroup("Right_Endeffector");
+   const moveit::core::JointModelGroup* joint_model_group_lee = kinematic_model->getJointModelGroup("Left_Endeffector");
+   
+   const std::vector<std::string>& joint_names_g = joint_model_group_g->getVariableNames();
+   const std::vector<std::string>& joint_names_fr = joint_model_group_fr->getVariableNames();
+   const std::vector<std::string>& joint_names_ra = joint_model_group_ra->getVariableNames();
+   const std::vector<std::string>& joint_names_la = joint_model_group_la->getVariableNames();
+   const std::vector<std::string>& joint_names_ree = joint_model_group_ree->getVariableNames();
+   const std::vector<std::string>& joint_names_lee = joint_model_group_lee->getVariableNames();
+   
    
    // BEGIN_TUTORIAL
    //
@@ -295,42 +319,51 @@ int main(int argc, char ** argv) {
    // MoveIt operates on sets of joints called "planning groups" and stores them in an object called
    // the `JointModelGroup`. Throughout MoveIt the terms "planning group" and "joint model group"
    // are used interchangably.
-   static const std::string PLANNING_GROUP_GANTRY = "gantry";
-   static const std::string PLANNING_GROUP_RIGHT = "right_arm";
-   static const std::string PLANNING_GROUP_LEFT = "left_arm";
+   // ARIAC/gantry_moveit_config/config/gantry.srdf
+   static const std::string PLANNING_GROUP_GANTRY = "Gantry";
+   static const std::string PLANNING_GROUP_FULL_ROBOT = "Full_Robot";
+   static const std::string PLANNING_GROUP_RIGHT_ARM = "Right_Arm";
+   static const std::string PLANNING_GROUP_RIGHT_EE = "Right_Endeffector";
+   static const std::string PLANNING_GROUP_LEFT_ARM = "Left_Arm";
+   static const std::string PLANNING_GROUP_LEFT_EE = "Left_Endeffector";
+   
    
    // The :planning_interface:`MoveGroupInterface` class can be easily
    // setup using just the name of the planning group you would like to control and plan for.
-   moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP_RIGHT);
+   ROS_INFO("It's still OK here.");
+   moveit::planning_interface::MoveGroupInterface move_group_ra(PLANNING_GROUP_RIGHT_ARM);
+//   moveit::planning_interface::MoveGroupInterface move_group_la(PLANNING_GROUP_LEFT_ARM);
+//   moveit::planning_interface::MoveGroupInterface move_group_fr(PLANNING_GROUP_FULL_ROBOT);
+//   moveit::planning_interface::MoveGroupInterface move_group_g(PLANNING_GROUP_GANTRY);
    
    // We will use the :planning_interface:`PlanningSceneInterface`
    // class to add and remove collision objects in our "virtual world" scene
    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
    
    // Raw pointers are frequently used to refer to the planning group for improved performance.
-   const moveit::core::JointModelGroup* joint_model_group =
-   move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP_RIGHT);
+   joint_model_group_ra = move_group_ra.getCurrentState()->getJointModelGroup(PLANNING_GROUP_RIGHT_ARM);
+//   joint_model_group_fr = move_group_fr.getCurrentState()->getJointModelGroup(PLANNING_GROUP_FULL_ROBOT);
+//   joint_model_group_la = move_group_la.getCurrentState()->getJointModelGroup(PLANNING_GROUP_LEFT_ARM);
+//   joint_model_group_g = move_group_g.getCurrentState()->getJointModelGroup(PLANNING_GROUP_GANTRY);
    
-   // Visualization
-   // ^^^^^^^^^^^^^
-   //
-   // The package MoveItVisualTools provides many capabilities for visualizing objects, robots,
-   // and trajectories in RViz as well as debugging tools such as step-by-step introspection of a script.
-   namespace rvt = rviz_visual_tools;
-   moveit_visual_tools::MoveItVisualTools visual_tools("panda_link0");
-   visual_tools.deleteAllMarkers();
+   ROS_INFO_NAMED("tutorial", "Available Planning Groups:");
+   std::copy(move_group_ra.getJointModelGroupNames().begin(), move_group_ra.getJointModelGroupNames().end(),
+             std::ostream_iterator<std::string>(std::cout, ", "));
    
-   // Remote control is an introspection tool that allows users to step through a high level script
-   // via buttons and keyboard shortcuts in RViz
-   visual_tools.loadRemoteControl();
+   geometry_msgs::Pose target_pose1;
+   target_pose1.orientation.w = 1.0;
+   target_pose1.position.x = 0.28;
+   target_pose1.position.y = -0.2;
+   target_pose1.position.z = 0.5;
+   move_group_ra.setPoseTarget(target_pose1);
    
-   // RViz provides many types of markers, in this demo we will use text, cylinders, and spheres
-   Eigen::Isometry3d text_pose = Eigen::Isometry3d::Identity();
-   text_pose.translation().z() = 1.0;
-   visual_tools.publishText(text_pose, "MoveGroupInterface Demo", rvt::WHITE, rvt::XLARGE);
+   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
    
-   // Batch publishing is used to reduce the number of messages being sent to RViz for large visualizations
-   visual_tools.trigger();
+   bool success = (move_group_ra.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+   
+   ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+   
+   move_group_ra.move();
    
    return 0;
 }

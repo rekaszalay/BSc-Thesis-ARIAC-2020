@@ -31,8 +31,8 @@ import yaml
 
 rospack = rospkg.RosPack()
 world_dir = os.path.join(rospack.get_path('controller'), 'worlds')
-launch_dir = os.path.join(rospack.get_path('controller'), 'launch')
-gantry_dir = os.path.join(rospack.get_path('controller'), 'robots/gantry/gantry_description/urdf')
+launch_dir = os.path.join(rospack.get_path('nist_gear'), 'launch')
+gantry_dir = os.path.join(rospack.get_path('nist_gear'), 'robots/gantry/gantry_description/urdf')
 template_files = [
     os.path.join(world_dir, 'ariac.world.template'),
     os.path.join(launch_dir, 'gear.launch.template'),
