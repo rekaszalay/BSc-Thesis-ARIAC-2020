@@ -1,4 +1,9 @@
 <launch>
+  <!-- <group ns='ariac/gantry'>
+    <include file="$(find gantry_moveit_config)/launch/moveit_rviz.launch">
+      <arg name="rviz_config" value="$(find gantry_moveit_config)/launch/moveit.rviz"/>
+    </include>
+  </group> -->
   <arg name="verbose" default="false" />
   <arg unless="$(arg verbose)" name="verbose_args" value="" />
   <arg     if="$(arg verbose)" name="verbose_args" value="--verbose" />
@@ -19,7 +24,7 @@
   <arg unless="$(arg load_moveit)" name="load_moveit_args" value="" />
   <arg     if="$(arg load_moveit)" name="load_moveit_args" value="--load-moveit" />
 
-  <node name="ariac_sim" pkg="controller" type="my_gear.py"
+  <node name="ariac_sim" pkg="nist_gear" type="gear.py"
         args="--development-mode
           $(arg verbose_args)
           $(arg state_logging_args)
@@ -27,7 +32,7 @@
           $(arg load_moveit_args)
           $(arg fill_demo_shipment_args)
           --visualize-sensor-views
-          -f $(find controller)/config/sample.yaml
-          $(find controller)/config/sample_config.yaml
+          -f $(find nist_gear)/config/sample.yaml
+          $(find nist_gear)/config/sample_user_config.yaml
           " required="true" output="screen" />
 </launch>

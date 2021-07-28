@@ -172,7 +172,7 @@ public:
        msg.points.resize(1);
        // Resize the vector to the same length as the joint names.
        // Values are initialized to 0.
-       msg.points[0].positions.resize(msg.joint_names.size(), 0.0);
+       msg.points[0].positions.resize(msg.joint_names.size(), 10.0);
        // How long to take getting to the point (floating point seconds).
        msg.points[0].time_from_start = ros::Duration(0.001);
        ROS_INFO_STREAM("Sending command:\n" << msg);
@@ -285,7 +285,8 @@ int main(int argc, char ** argv) {
    
    ROS_INFO("Setup complete.");
    start_competition(node);
-   ros::spin();  // This executes callbacks on new data until ctrl-c.
+   ros::AsyncSpinner spinner(1);  // This executes callbacks on new data until ctrl-c.
+   spinner.start();
    
    // BEGIN_TUTORIAL
    //
