@@ -1,5 +1,5 @@
 <launch>
-  <arg name="verbose" default="false" />
+  <arg name="verbose" default="true" />
   <arg unless="$(arg verbose)" name="verbose_args" value="" />
   <arg     if="$(arg verbose)" name="verbose_args" value="--verbose" />
 

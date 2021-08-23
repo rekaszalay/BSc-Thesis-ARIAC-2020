@@ -30,9 +30,15 @@ catkin_package()
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ## Declare a C++ executable
-add_executable(controller src/example_control_node.cpp)
+add_executable(controller 
+	src/example_control_node.cpp)
 add_dependencies(controller ${catkin_EXPORTED_TARGETS})
 target_link_libraries(controller ${catkin_LIBRARIES})
+
+add_executable(gantry_control_node
+	src/gantry_control_node.cpp)
+add_dependencies(gantry_control_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(gantry_control_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##

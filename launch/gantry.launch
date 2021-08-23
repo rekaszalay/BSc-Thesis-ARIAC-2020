@@ -11,7 +11,7 @@
       joint_limited:=$(arg limited)"/>
 
     <!-- Load joint_states topic -->
-    <rosparam command="load" file="$(find joint_state_controller)/joint_state_controller.yaml"/>
+    <rosparam command="load" file="$(find joint_state_controller)/joint_state_controller.yaml"/> <!-- semmi hasznos nincs benne :( -->
     <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" output="screen" args="joint_state_controller"/>
 
     <!-- Publish robot to tf tree -->

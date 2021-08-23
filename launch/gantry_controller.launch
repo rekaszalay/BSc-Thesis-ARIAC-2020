@@ -1,0 +1,9 @@
+<launch>
+  <node name="controller" pkg="controller" type="controller" args="1" output="screen" respawn="false" >
+  	 </node>
+
+  <group ns="/ariac/gantry">
+  	 <node name="gantry_control_node" pkg="controller" type="gantry_control_node" args="1" output="screen" respawn="false" >
+  	 </node>
+  </group>
+</launch>
