@@ -24,6 +24,7 @@
 #include <nist_gear/Proximity.h>
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Range.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
@@ -188,6 +189,10 @@ public:
                                 "Logical camera: '" << image_msg->models.size() << "' objects.");
     }
     
+   void rgbd_camera_callback(const sensor_msgs::PointCloud2 & msg) {
+      ROS_INFO("RGBD cam callback");
+   }
+
     /// Called when a new Proximity message is received.
     void break_beam_callback(const nist_gear::Proximity::ConstPtr & msg) {
        if (msg->object_detected) {  // If there is an object in proximity.
@@ -273,6 +278,10 @@ int main(int argc, char ** argv) {
    ros::Subscriber break_beam_subscriber = node.subscribe(
    "/ariac/break_beam_1_change", 10,
    &MyCompetitionClass::break_beam_callback, &comp_class);
+
+   ros::Subscriber rgbd_camera_subscriber = node.subscribe(
+   "/ariac/rgbd_camera_1/points", 10,
+   &MyCompetitionClass::rgbd_camera_callback, &comp_class);
    
    // Subscribe to the '/ariac/logical_camera_1' topic.
    ros::Subscriber logical_camera_subscriber = node.subscribe(
@@ -287,6 +296,11 @@ int main(int argc, char ** argv) {
    start_competition(node);
    ros::AsyncSpinner spinner(1);
    spinner.start();
+
+   while (ros::ok())
+   {
+      ros::Duration(0.5).sleep();
+   }
 //    ROS_INFO_NAMED("The robot description ", node.hasParam("ariac/gantry/robot_description") ? "exists." : "doesn't exist");
 //    //ros::spin();  // This executes callbacks on new data until ctrl-c.
 //    ROS_INFO(node.getNamespace().c_str());

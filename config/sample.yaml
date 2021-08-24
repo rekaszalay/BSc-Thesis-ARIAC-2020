@@ -33,14 +33,14 @@ orders:
           rpy: [0, 0, 0]
 
 models_over_bins:
-   bin1:
-     models:
-       gear_part_green:
-         xyz_start: [0.2, 0.2, 0.0]
-         xyz_end: [0.4, 0.4, 0.0]
-         rpy: [0, 0, 0]
-         num_models_x: 2
-         num_models_y: 2
+  #  bin1:
+  #    models:
+  #      gear_part_green:
+  #        xyz_start: [0.2, 0.2, 0.0]
+  #        xyz_end: [0.4, 0.4, 0.0]
+  #        rpy: [0, 0, 0]
+  #        num_models_x: 2
+  #        num_models_y: 2
    bin2:
      models:
        piston_rod_part_blue:
