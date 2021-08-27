@@ -14,34 +14,8 @@
 
 // %Tag(FULLTEXT)%
 // %Tag(INCLUDE_STATEMENTS)%
-#include <algorithm>
-#include <vector>
+#include "utilities.h"
 
-#include <ros/ros.h>
-
-#include <nist_gear/LogicalCameraImage.h>
-#include <nist_gear/Order.h>
-#include <nist_gear/Proximity.h>
-#include <sensor_msgs/JointState.h>
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/Range.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/String.h>
-#include <std_srvs/Trigger.h>
-#include <trajectory_msgs/JointTrajectory.h>
-#include <control_msgs/JointTrajectoryControllerState.h>
-
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
-
-#include <moveit_msgs/DisplayRobotState.h>
-#include <moveit_msgs/DisplayTrajectory.h>
-
-#include <moveit_msgs/AttachedCollisionObject.h>
-#include <moveit_msgs/CollisionObject.h>
-
-#include <moveit_visual_tools/moveit_visual_tools.h>
 // %EndTag(INCLUDE_STATEMENTS)%
 
 // %Tag(START_COMP)%
@@ -72,6 +46,10 @@ void start_competition(ros::NodeHandle & node) {
 class MyCompetitionClass
 {
 public:
+   sensor_msgs::PointCloud2 rgbd_camera_1_img;
+   nist_gear::LogicalCameraImage logical_camera_1_img;
+   nist_gear::LogicalCameraImage logical_camera_2_img;
+
     explicit MyCompetitionClass(ros::NodeHandle & node)
     : current_score_(0), right_arm_has_been_zeroed_(false), left_arm_has_been_zeroed_(false)
     {
@@ -187,10 +165,65 @@ public:
     {
        ROS_INFO_STREAM_THROTTLE(10,
                                 "Logical camera: '" << image_msg->models.size() << "' objects.");
+      ///TODO:megcsinálni mindkettőre
+      logical_camera_1_img = *image_msg;
     }
     
-   void rgbd_camera_callback(const sensor_msgs::PointCloud2 & msg) {
-      ROS_INFO("RGBD cam callback");
+   void rgbd_camera_callback(const sensor_msgs::PointCloud2::ConstPtr & msg) {
+      // ROS_INFO((std::to_string(msg.data[0]) + " " +std::to_string(msg.data[1]) + " " +std::to_string(msg.data[2])+ " " +std::to_string(msg.data[3])).c_str());
+      // for (sensor_msgs::PointField field : msg.fields) {ROS_INFO(("name: " + field.name +" type: "+ std::to_string(field.datatype) +" count: "+ std::to_string(field.count) +" offest: "+ std::to_string(field.offset)).c_str());}
+      // for (int i = 0; i < 96; i++) {
+      //    ROS_INFO(std::to_string(msg.data[i]).c_str());
+      // }
+      rgbd_camera_1_img = *msg;
+      
+   }
+
+   pcl::PointXYZ getColorOfClosestPoint(pcl::PointXYZRGB point) {
+      pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::fromROSMsg(rgbd_camera_1_img, *pc);
+
+      kdtree.setInputCloud(pc);
+      //std::string frame = pc->header.frame_id;
+      int howManyPointsDoWeNeedBack = 4;
+      std::vector<int> resultPtIdx(howManyPointsDoWeNeedBack);
+      std::vector<float> ezCsakKell(howManyPointsDoWeNeedBack);
+      pcl::PointXYZ result(0.0f,0.0f,0.0f);
+      ///TODO: transform pointcloud
+      if (kdtree.nearestKSearch(point, howManyPointsDoWeNeedBack, resultPtIdx, ezCsakKell) > 0){
+         for (int point : resultPtIdx) {
+            result.x += pc->points.at(point).r;
+            result.y += pc->points.at(point).g;
+            result.z += pc->points.at(point).b;
+            ROS_INFO(std::to_string(pc->points.at(point).g).c_str());}
+      }
+      result.x /= 4.0f;
+      result.y /= 4.0f;
+      result.z /= 4.0f;
+      return result;
+      //int pixelCount = rgbd_camera_1_img.height * rgbd_camera_1_img.width;
+      //ROS_INFO(std::to_string(pixelCount).c_str());
+      //ROS_INFO(std::to_string( msg.data.size()).c_str());
+   }
+
+   nist_gear::Model getNextItemToMove() {
+      if (logical_camera_1_img.models.empty()){
+         ROS_INFO("");
+         throw "Logical camera sees nothing.";
+      } else {
+         nist_gear::Model nextModel = logical_camera_1_img.models.at(0);
+         nextModel.pose = convert_to_frame(nextModel.pose, "logical_camera_1_frame", rgbd_camera_1_img.header.frame_id);
+         pcl::PointXYZRGB point;
+         point.x=nextModel.pose.position.x;
+         point.y=nextModel.pose.position.y;
+         point.z=nextModel.pose.position.z;
+         
+         pcl::PointXYZ color = getColorOfClosestPoint(point);
+         if (color.x > color.y) nextModel.type = "red_apple"; else nextModel.type = "green_apple";
+         nextModel.pose = convert_to_frame(nextModel.pose, rgbd_camera_1_img.header.frame_id, "world");
+         return nextModel;
+      }
    }
 
     /// Called when a new Proximity message is received.
@@ -300,89 +333,10 @@ int main(int argc, char ** argv) {
    while (ros::ok())
    {
       ros::Duration(0.5).sleep();
+      nist_gear::Model model = comp_class.getNextItemToMove();
+      ROS_INFO(("Type: " + model.type + " Pose: " + std::to_string(model.pose.position.x) + ";"
+               + std::to_string(model.pose.position.y) + ";" + std::to_string(model.pose.position.z)).c_str());
    }
-//    ROS_INFO_NAMED("The robot description ", node.hasParam("ariac/gantry/robot_description") ? "exists." : "doesn't exist");
-//    //ros::spin();  // This executes callbacks on new data until ctrl-c.
-//    ROS_INFO(node.getNamespace().c_str());
-//    ros::V_string names;
-//    node.getParamNames(names);
-//    for(std::string name : names) ROS_INFO(name.c_str());
-
-//    /**/robot_model_loader::RobotModelLoader robot_model_loader("ariac/gantry/robot_description");
-//    const moveit::core::RobotModelPtr& kinematic_model = robot_model_loader.getModel();
-//    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
-   
-//    moveit::core::RobotStatePtr kinematic_state(new moveit::core::RobotState(kinematic_model));
-//    kinematic_state->setToDefaultValues();
-//    const moveit::core::JointModelGroup* joint_model_group_g = kinematic_model->getJointModelGroup("Gantry");
-//    const moveit::core::JointModelGroup* joint_model_group_fr = kinematic_model->getJointModelGroup("Full_Robot");
-//    const moveit::core::JointModelGroup* joint_model_group_ra = kinematic_model->getJointModelGroup("Right_Arm");
-//    const moveit::core::JointModelGroup* joint_model_group_la = kinematic_model->getJointModelGroup("Left_Arm");
-//    const moveit::core::JointModelGroup* joint_model_group_ree = kinematic_model->getJointModelGroup("Right_Endeffector");
-//    const moveit::core::JointModelGroup* joint_model_group_lee = kinematic_model->getJointModelGroup("Left_Endeffector");
-   
-//    const std::vector<std::string>& joint_names_g = joint_model_group_g->getVariableNames();
-//    const std::vector<std::string>& joint_names_fr = joint_model_group_fr->getVariableNames();
-//    const std::vector<std::string>& joint_names_ra = joint_model_group_ra->getVariableNames();
-//    const std::vector<std::string>& joint_names_la = joint_model_group_la->getVariableNames();
-//    const std::vector<std::string>& joint_names_ree = joint_model_group_ree->getVariableNames();
-//    const std::vector<std::string>& joint_names_lee = joint_model_group_lee->getVariableNames();
-   
-   
-//    // BEGIN_TUTORIAL
-//    //
-//    // Setup
-//    // ^^^^^
-//    //
-//    // MoveIt operates on sets of joints called "planning groups" and stores them in an object called
-//    // the `JointModelGroup`. Throughout MoveIt the terms "planning group" and "joint model group"
-//    // are used interchangably.
-//    // ARIAC/gantry_moveit_config/config/gantry.srdf
-//    static const std::string PLANNING_GROUP_GANTRY = "Gantry";
-//    static const std::string PLANNING_GROUP_FULL_ROBOT = "Full_Robot";
-//    static const std::string PLANNING_GROUP_RIGHT_ARM = "Right_Arm";
-//    static const std::string PLANNING_GROUP_RIGHT_EE = "Right_Endeffector";
-//    static const std::string PLANNING_GROUP_LEFT_ARM = "Left_Arm";
-//    static const std::string PLANNING_GROUP_LEFT_EE = "Left_Endeffector";
-   
-   
-//    // The :planning_interface:`MoveGroupInterface` class can be easily
-//    // setup using just the name of the planning group you would like to control and plan for.
-//    ROS_INFO("It's still OK here.");
-//    moveit::planning_interface::MoveGroupInterface move_group_ra(PLANNING_GROUP_RIGHT_ARM);
-// //   moveit::planning_interface::MoveGroupInterface move_group_la(PLANNING_GROUP_LEFT_ARM);
-// //   moveit::planning_interface::MoveGroupInterface move_group_fr(PLANNING_GROUP_FULL_ROBOT);
-// //   moveit::planning_interface::MoveGroupInterface move_group_g(PLANNING_GROUP_GANTRY);
-   
-//    // We will use the :planning_interface:`PlanningSceneInterface`
-//    // class to add and remove collision objects in our "virtual world" scene
-//    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-   
-//    // Raw pointers are frequently used to refer to the planning group for improved performance.
-//    joint_model_group_ra = move_group_ra.getCurrentState()->getJointModelGroup(PLANNING_GROUP_RIGHT_ARM);
-// //   joint_model_group_fr = move_group_fr.getCurrentState()->getJointModelGroup(PLANNING_GROUP_FULL_ROBOT);
-// //   joint_model_group_la = move_group_la.getCurrentState()->getJointModelGroup(PLANNING_GROUP_LEFT_ARM);
-// //   joint_model_group_g = move_group_g.getCurrentState()->getJointModelGroup(PLANNING_GROUP_GANTRY);
-   
-//    ROS_INFO_NAMED("tutorial", "Available Planning Groups:");
-//    std::copy(move_group_ra.getJointModelGroupNames().begin(), move_group_ra.getJointModelGroupNames().end(),
-//              std::ostream_iterator<std::string>(std::cout, ", "));
-   
-//    geometry_msgs::Pose target_pose1;
-//    target_pose1.orientation.w = 1.0;
-//    target_pose1.position.x = 0.28;
-//    target_pose1.position.y = -0.2;
-//    target_pose1.position.z = 0.5;
-//    move_group_ra.setPoseTarget(target_pose1);
-   
-//    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-   
-//    bool success = (move_group_ra.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-   
-//    ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
-   
-//    move_group_ra.move();
-   
    return 0;
 }
 // %EndTag(MAIN)%

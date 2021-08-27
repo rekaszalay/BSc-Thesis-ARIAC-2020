@@ -70,9 +70,10 @@ int main(int argc, char **argv)
    static const std::string PLANNING_GROUP_LEFT_EE = "Left_Endeffector";
    // The :planning_interface:`MoveGroupInterface` class can be easily
    // setup using just the name of the planning group you would like to control and plan for.
-   ROS_INFO("It's still OK here.");
    moveit::planning_interface::MoveGroupInterface move_group_ra(PLANNING_GROUP_RIGHT_ARM);
+   moveit::planning_interface::MoveGroupInterface move_group_ree(PLANNING_GROUP_RIGHT_EE);
    moveit::planning_interface::MoveGroupInterface move_group_la(PLANNING_GROUP_LEFT_ARM);
+   moveit::planning_interface::MoveGroupInterface move_group_lee(PLANNING_GROUP_LEFT_EE);
    moveit::planning_interface::MoveGroupInterface move_group_fr(PLANNING_GROUP_FULL_ROBOT);
    moveit::planning_interface::MoveGroupInterface move_group_g(PLANNING_GROUP_GANTRY);
    // We will use the :planning_interface:`PlanningSceneInterface`
@@ -80,22 +81,27 @@ int main(int argc, char **argv)
    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
    // Raw pointers are frequently used to refer to the planning group for improved performance.
    joint_model_group_ra = move_group_ra.getCurrentState()->getJointModelGroup(PLANNING_GROUP_RIGHT_ARM);
+   joint_model_group_ree = move_group_ree.getCurrentState()->getJointModelGroup(PLANNING_GROUP_RIGHT_EE);
    joint_model_group_fr = move_group_fr.getCurrentState()->getJointModelGroup(PLANNING_GROUP_FULL_ROBOT);
+   joint_model_group_lee = move_group_lee.getCurrentState()->getJointModelGroup(PLANNING_GROUP_LEFT_EE);
    joint_model_group_la = move_group_la.getCurrentState()->getJointModelGroup(PLANNING_GROUP_LEFT_ARM);
    joint_model_group_g = move_group_g.getCurrentState()->getJointModelGroup(PLANNING_GROUP_GANTRY);
    ROS_INFO_NAMED("tutorial", "Available Planning Groups:");
-   std::copy(move_group_ra.getJointModelGroupNames().begin(), move_group_ra.getJointModelGroupNames().end(),
+   std::copy(move_group_fr.getJointModelGroupNames().begin(), move_group_fr.getJointModelGroupNames().end(),
             std::ostream_iterator<std::string>(std::cout, ", "));
+   move_group_fr.setEndEffectorLink("right_ee_link");
+   move_group_fr.setEndEffector("right_ee");
+   ROS_INFO(move_group_fr.getEndEffector().c_str());
    geometry_msgs::Pose target_pose1;
-   target_pose1.position.x = -0.8;
-   target_pose1.position.y = 0.06;
+   target_pose1.position.x = -1.8;
+   target_pose1.position.y = 0.26;
    target_pose1.position.z = 1.42;
-   move_group_ra.setPoseTarget(target_pose1);
-   move_group_ra.setGoalTolerance(0.01);
+   move_group_fr.setPoseTarget(target_pose1);
+   move_group_fr.setGoalTolerance(0.1);
    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-   bool success = (move_group_ra.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+   bool success = (move_group_fr.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
    ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
-   move_group_ra.move();
+   move_group_fr.move();
    spinner.stop();
    ros::shutdown();
    return 0;

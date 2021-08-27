@@ -7,6 +7,9 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_srvs
   trajectory_msgs
+  geometry_msgs
+  tf2_geometry_msgs
+  rosgraph_msgs
   interactive_markers
   moveit_core
   moveit_ros_planning
@@ -14,7 +17,13 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_perception
   rviz_visual_tools
   moveit_visual_tools
+  tf2_ros
+  tf2
+  message_generation
 )
+
+find_package(PCL REQUIRED)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -28,12 +37,18 @@ catkin_package()
 ###########
 
 include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(${PCL_INCLUDE_DIRS})
+
+link_directories(${PCL_INCLUDE_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ executable
 add_executable(controller 
-	src/example_control_node.cpp)
+	src/example_control_node.cpp
+  src/utilities.cpp
+  )
 add_dependencies(controller ${catkin_EXPORTED_TARGETS})
-target_link_libraries(controller ${catkin_LIBRARIES})
+target_link_libraries(controller ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(gantry_control_node
 	src/gantry_control_node.cpp)
