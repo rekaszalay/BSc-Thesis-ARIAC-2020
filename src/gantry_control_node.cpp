@@ -1,5 +1,4 @@
-#include "ros/ros.h"
-//#include "arm_control.h"
+#include <gantry_control_node.h>
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -11,6 +10,15 @@
 
 #include <moveit_visual_tools/moveit_visual_tools.h>
 
+nist_gear::Model pickPart() {
+   controller::GetNextModel srv;
+   getNextPart_client.call(srv);
+   ROS_INFO(srv.response.nextModel.type.c_str());
+   srv.response.nextModel.pose = convert_to_frame(srv.response.nextModel.pose, "world", "torso_main");
+   return srv.response.nextModel;
+}
+
+
 int main(int argc, char **argv)
 {
    //std::string id = argv[1];
@@ -21,10 +29,12 @@ int main(int argc, char **argv)
    ros::AsyncSpinner spinner(4);
    spinner.start();
 
+   getNextPart_client = node.serviceClient<controller::GetNextModel>("/ariac/next_model");
+   getNextPart_client.waitForExistence();
+
   // ArmControl arm(node, id);
 
    ros::Rate loop_rate(10);
-   ROS_INFO("Megy a gantry node :D");
 
    // while (ros::ok()) {
 
@@ -76,6 +86,10 @@ int main(int argc, char **argv)
    moveit::planning_interface::MoveGroupInterface move_group_lee(PLANNING_GROUP_LEFT_EE);
    moveit::planning_interface::MoveGroupInterface move_group_fr(PLANNING_GROUP_FULL_ROBOT);
    moveit::planning_interface::MoveGroupInterface move_group_g(PLANNING_GROUP_GANTRY);
+   
+   trajectory_msgs::JointTrajectory gantry_msg;
+   //gantry_msg.points.at(0);
+
    // We will use the :planning_interface:`PlanningSceneInterface`
    // class to add and remove collision objects in our "virtual world" scene
    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -86,22 +100,66 @@ int main(int argc, char **argv)
    joint_model_group_lee = move_group_lee.getCurrentState()->getJointModelGroup(PLANNING_GROUP_LEFT_EE);
    joint_model_group_la = move_group_la.getCurrentState()->getJointModelGroup(PLANNING_GROUP_LEFT_ARM);
    joint_model_group_g = move_group_g.getCurrentState()->getJointModelGroup(PLANNING_GROUP_GANTRY);
-   ROS_INFO_NAMED("tutorial", "Available Planning Groups:");
-   std::copy(move_group_fr.getJointModelGroupNames().begin(), move_group_fr.getJointModelGroupNames().end(),
-            std::ostream_iterator<std::string>(std::cout, ", "));
-   move_group_fr.setEndEffectorLink("right_ee_link");
-   move_group_fr.setEndEffector("right_ee");
-   ROS_INFO(move_group_fr.getEndEffector().c_str());
+   // ROS_INFO_NAMED("tutorial", "Available Planning Groups:");
+   // std::copy(move_group_fr.getJointModelGroupNames().begin(), move_group_fr.getJointModelGroupNames().end(),
+   //          std::ostream_iterator<std::string>(std::cout, ", "));
+   // move_group_fr.clearPoseTargets();
+   // bool link = move_group_fr.setEndEffectorLink("left_ee_link");
+   // bool ee = move_group_fr.setEndEffector("left_ee");
+   // ROS_INFO(("link: " + std::to_string(link) + " ee: " + std::to_string(ee)).c_str());
+   std::vector<double> jointState = move_group_fr.getCurrentJointValues();
+   for (double value : jointState){
+      //ROS_INFO(std::to_string(value).c_str());
+   }
+   // jointState[0] = 0.5;
+   // geometry_msgs::PoseStamped currentPose = move_group_fr.getCurrentPose();
+   // ROS_INFO(("X: "+ std::to_string(currentPose.pose.position.x) +" y: "+ std::to_string(currentPose.pose.position.y) +" Z: "+ std::to_string(currentPose.pose.position.z)).c_str());
+   //move_group_fr.setJointValueTarget(jointState);
+   // ROS_INFO(move_group_fr.getEndEffectorLink().c_str());
+   // ROS_INFO(move_group_ra.getEndEffectorLink().c_str());
+   // ROS_INFO(move_group_la.getEndEffectorLink().c_str());
    geometry_msgs::Pose target_pose1;
-   target_pose1.position.x = -1.8;
+   target_pose1.position.x = -0.8;
    target_pose1.position.y = 0.26;
    target_pose1.position.z = 1.42;
-   move_group_fr.setPoseTarget(target_pose1);
-   move_group_fr.setGoalTolerance(0.1);
+
+   const double EPS3 = 0.1;
+   std::vector<double> armsup_left = {PI/2, 0-EPS3, PI/2+EPS3, PI/2, 0, 0};
+   std::vector<double> armsup_right = {-PI/2, -PI+EPS3, -PI/2-EPS3, PI/2, 0, 0};
+   /// NEW here/
+   std::vector<double> armsup_left_shelf = {PI/2, -PI/2, 2.7, PI/2, 0, 0};
+   std::vector<double> armsup_right_shelf = {-PI/2, -PI/2, -2.7, PI/2, 0, 0};
+   ///
+   std::vector<double> armsup_left_hanging = {0, -PI/2, PI/2, PI/2, PI/2, 0};
+   std::vector<double> armsup_right_hanging = {0, -PI/2, -PI/2, PI/2, -PI/2, 0};
+
+   const double EPS1 = 0.2;
+   std::vector<double> handover_before_left = {PI/2, -EPS1, PI/2+EPS1, PI, -PI/2, PI/2};
+   std::vector<double> handover_before_right = {-PI/2, -PI+EPS1, -PI/2-EPS1, 0, PI/2, PI/2};
+   const double EPS2 = 0.12;
+   std::vector<double> handover_left = {PI/2, -EPS2, PI/2+EPS2, PI, -PI/2, PI/2};
+   std::vector<double> handover_right = {-PI/2, -PI+EPS2, -PI/2-EPS2, 0, PI/2, PI/2};
+   
+   //target_pose1 = convert_to_frame(target_pose1, "world", "torso_base");
+   // ROS_INFO((std::to_string(target_pose1.position.x) + " " + std::to_string(target_pose1.position.y) + " " +std::to_string(target_pose1.position.z)).c_str());
+   //move_group_ra.setPoseTarget(target_pose1);
+   // move_group_fr.setGoalTolerance(0.1);
+   //move_group_ra.setGoalTolerance(0.1);
+   nist_gear::Model nextModel = pickPart();
+   std::vector<double> target(15);
+   target[0] = nextModel.pose.position.x;
+   target[1] = nextModel.pose.position.y;
+   target[2] = 0;
+   std::copy(armsup_left_shelf.begin(),armsup_left_shelf.end(),target.begin()+3);
+   std::copy(armsup_right_shelf.begin(),armsup_right_shelf.end(),target.begin()+3+6);
+   move_group_fr.setJointValueTarget(target);
    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
    bool success = (move_group_fr.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-   ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+   // ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+   // move_group_fr.move();
    move_group_fr.move();
+   
+   //move_group_ra.execute(my_plan);
    spinner.stop();
    ros::shutdown();
    return 0;

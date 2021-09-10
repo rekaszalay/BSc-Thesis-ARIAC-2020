@@ -25,7 +25,10 @@
 
 #include <moveit_msgs/AttachedCollisionObject.h>
 #include <moveit_msgs/CollisionObject.h>
-
 #include <moveit_visual_tools/moveit_visual_tools.h>
+
+#include <controller/GetNextModel.h>
+
+const double PI = 3.141592;
 
 geometry_msgs::Pose convert_to_frame(geometry_msgs::Pose pose, std::string source_frame, std::string target_frame);

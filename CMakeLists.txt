@@ -24,6 +24,19 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(PCL REQUIRED)
 
+add_service_files(DIRECTORY srv
+  FILES
+  GetNextModel.srv
+)
+
+generate_messages(
+        DEPENDENCIES
+        nist_gear
+        std_msgs
+        geometry_msgs
+        rosgraph_msgs
+        actionlib_msgs
+)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -51,7 +64,9 @@ add_dependencies(controller ${catkin_EXPORTED_TARGETS})
 target_link_libraries(controller ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(gantry_control_node
-	src/gantry_control_node.cpp)
+	src/gantry_control_node.cpp
+  src/utilities.cpp
+  )
 add_dependencies(gantry_control_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(gantry_control_node ${catkin_LIBRARIES})
 
