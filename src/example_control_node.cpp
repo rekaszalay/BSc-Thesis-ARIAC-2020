@@ -51,7 +51,7 @@ void start_competition(ros::NodeHandle &node)
 class MyCompetitionClass
 {
 public:
-   sensor_msgs::PointCloud2 rgbd_camera_1_img;
+   sensor_msgs::PointCloud2 rgbd_camera_1_img, rgbd_cam_screenshot;
    nist_gear::LogicalCameraImage logical_camera_1_img;
    nist_gear::LogicalCameraImage logical_camera_2_img;
 
@@ -190,17 +190,19 @@ public:
       //    ROS_INFO(std::to_string(msg.data[i]).c_str());
       // }
       rgbd_camera_1_img = *msg;
+      // for (sensor_msgs::PointField field : msg->fields) ROS_INFO_STREAM("RGBD point field: " << field);
    }
 
    pcl::PointXYZ getColorOfClosestPoint(pcl::PointXYZRGB point)
    {
       pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
-      pcl::fromROSMsg(rgbd_camera_1_img, *pc);
-
+      pcl::fromROSMsg(rgbd_cam_screenshot, *pc);
+      // ROS_INFO((std::to_string(point.x) + " " + std::to_string(point.y) + " " + std::to_string(point.z)).c_str());
+      // ROS_INFO((std::to_string(pc->points.at(0).r) + std::to_string(pc->points.at(0).g) + std::to_string(pc->points.at(0).b)).c_str());
       kdtree.setInputCloud(pc);
       //std::string frame = pc->header.frame_id;
-      int howManyPointsDoWeNeedBack = 4;
+      int howManyPointsDoWeNeedBack = 1;
       std::vector<int> resultPtIdx(howManyPointsDoWeNeedBack);
       std::vector<float> ezCsakKell(howManyPointsDoWeNeedBack);
       pcl::PointXYZ result(0.0f, 0.0f, 0.0f);
@@ -209,15 +211,25 @@ public:
       {
          for (int point : resultPtIdx)
          {
-            result.x += pc->points.at(point).r;
+            ROS_INFO_STREAM("found point all details **************************************\n" << pc->points.at(point));
+            result.x += pc->points.at(point).b; //hülye a szenzor
             result.y += pc->points.at(point).g;
-            result.z += pc->points.at(point).b;
-            // ROS_INFO(std::to_string(pc->points.at(point).g).c_str());
+            result.z += pc->points.at(point).r;
+            geometry_msgs::Pose p;
+            p.position.x = pc->points.at(point).x;
+            p.position.y = pc->points.at(point).y;
+            p.position.z = pc->points.at(point).z;
+            ROS_INFO_STREAM("[getColorOfClosestPoint] closest found point rgbd : " << p);
+            p = convert_to_frame(p, rgbd_camera_1_img.header.frame_id, "world");
+            ROS_INFO_STREAM("[getColorOfClosestPoint] closest found point world : " << p);
+            // ROS_INFO((std::to_string(pc->points.at(point).x) + " " + std::to_string(pc->points.at(point).y) + " " + std::to_string(pc->points.at(point).z)).c_str());
          }
       }
-      result.x /= 4.0f;
-      result.y /= 4.0f;
-      result.z /= 4.0f;
+      result.x;// /= 4.0f;
+      result.y;// /= 4.0f;
+      result.z;// /= 4.0f;
+      ROS_INFO(("Result color r:" + std::to_string(result.x) + " g: " + std::to_string(result.y) + " b: " + std::to_string(result.z)).c_str());
+      // ROS_INFO_STREAM("[getColorOfClosestPoint] result: "<<result);
       return result;
       //int pixelCount = rgbd_camera_1_img.height * rgbd_camera_1_img.width;
       //ROS_INFO(std::to_string(pixelCount).c_str());
@@ -232,22 +244,57 @@ public:
          throw "Logical camera sees nothing.";
       }
       else
-      {
+      {  
+         rgbd_cam_screenshot = rgbd_camera_1_img;
          nist_gear::Model nextModel = logical_camera_1_img.models.at(0);
-         nextModel.pose = convert_to_frame(nextModel.pose, "logical_camera_1_frame", rgbd_camera_1_img.header.frame_id);
+         // ROS_INFO_STREAM(nextModel.pose);
+         // ROS_INFO_STREAM(rgbd_camera_1_img.header.frame_id);
+         nextModel.pose = convert_to_frame(nextModel.pose, "logical_camera_1_frame", "world");
+         ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose world 1 : " << nextModel);
+         nextModel.pose.position.z = nextModel.pose.position.z + 0.1;
+         nextModel.pose = convert_to_frame(nextModel.pose, "world", rgbd_camera_1_img.header.frame_id);
+         ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose rgbd frame 2 : " << nextModel);
          pcl::PointXYZRGB point;
          point.x = nextModel.pose.position.x;
          point.y = nextModel.pose.position.y;
          point.z = nextModel.pose.position.z;
+         ROS_INFO_STREAM("[GetNextItemToMove] PointXYZRGB rgbd 3 : " << point);
 
          pcl::PointXYZ color = getColorOfClosestPoint(point);
-         if (color.x > color.y)
-            nextModel.type = "red_apple";
-         else
-            nextModel.type = "green_apple";
+         if (nextModel.type.find("apple") != std::string::npos) {
+            if (color.x > color.y)
+               nextModel.type = "red_apple";
+            else
+               nextModel.type = "green_apple";
+         }
          nextModel.pose = convert_to_frame(nextModel.pose, rgbd_camera_1_img.header.frame_id, "world");
+         ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose world 4 : " << nextModel.pose);
          return nextModel;
       }
+   }
+
+   bool testCameras() {
+      ROS_INFO("Testing cameras***************************************************************");
+      ROS_INFO_STREAM(rgbd_camera_1_img.header.frame_id);
+
+      if (logical_camera_1_img.models.empty())return false;
+      else for (nist_gear::Model model : logical_camera_1_img.models) {
+         rgbd_cam_screenshot = rgbd_camera_1_img;
+         model.pose = convert_to_frame(model.pose, "logical_camera_1_frame", rgbd_camera_1_img.header.frame_id);
+         pcl::PointXYZRGB point;
+         point.x = -model.pose.position.x;
+         point.y = model.pose.position.y;
+         point.z = model.pose.position.z;
+         pcl::PointXYZ color = getColorOfClosestPoint(point);
+         if (model.type.find("apple") != std::string::npos) {
+            if (color.x > color.y)
+               model.type = "red_apple";
+            else
+               model.type = "green_apple";
+         }
+        // ROS_INFO_STREAM(model);
+      }
+      return false;
    }
 
    bool getNextItemToMove(controller::GetNextModel::Request &req, controller::GetNextModel::Response &res)
@@ -371,11 +418,15 @@ int main(int argc, char **argv)
    start_competition(node);
    ros::AsyncSpinner spinner(1);
    spinner.start();
+   bool first = true;
 
    while (ros::ok())
    {
       ros::Duration(0.5).sleep();
-      nist_gear::Model model = comp_class.getNextItemToMove();
+      if (first) {
+         //first = comp_class.testCameras();
+      }
+      //nist_gear::Model model = comp_class.getNextItemToMove();
       // ROS_INFO(("Type: " + model.type + " Pose: " + std::to_string(model.pose.position.x) + ";"
       //          + std::to_string(model.pose.position.y) + ";" + std::to_string(model.pose.position.z)).c_str());
    }

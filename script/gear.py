@@ -56,6 +56,8 @@ possible_products = [
     'gear_part_blue',
     'piston_rod_part_blue',
     'pulley_part_blue',
+    'apple_red',
+    'apple_green',
 ]
 sensor_configs = {
     'break_beam': None,

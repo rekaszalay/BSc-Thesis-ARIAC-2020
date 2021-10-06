@@ -19,11 +19,11 @@
   <arg unless="$(arg load_moveit)" name="load_moveit_args" value="" />
   <arg     if="$(arg load_moveit)" name="load_moveit_args" value="--load-moveit" />
 
-  <!-- <group ns='ariac/gantry'>
+  <group ns='ariac/gantry'>
     <include file="$(find gantry_moveit_config)/launch/moveit_rviz.launch">
       <arg name="rviz_config" value="$(find gantry_moveit_config)/launch/moveit.rviz"/>
     </include>
-  </group> -->
+  </group>
 
   <node name="ariac_sim" pkg="controller" type="gear.py"
         args="--development-mode
