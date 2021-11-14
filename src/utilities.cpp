@@ -14,6 +14,14 @@ geometry_msgs::Pose convert_to_frame(geometry_msgs::Pose pose, std::string sourc
   pose_rel.pose = pose;
 
   try {
+    std::string error = "";
+    while (!tfBuffer.canTransform(target_frame, source_frame, ros::Time(), ros::Duration(4.0), &error))
+    {
+      ros::Duration(1.0).sleep();
+      ROS_INFO_STREAM("[transform from " << source_frame << " to " << target_frame << "] transform not available");
+    }
+    error = "";
+    ROS_INFO_STREAM("[transform from " <<source_frame <<" to "<< target_frame<<"] available: "<<tfBuffer.canTransform(target_frame, source_frame, ros::Time(0), &error) << " error: "<<error); 
     // transformStamped = tfBuffer.lookupTransform("world", "kit_tray_1", ros::Time(0), ros::Duration(3.0));
     transformStamped = tfBuffer.lookupTransform(target_frame, source_frame, ros::Time(), ros::Duration(3.0));
   }

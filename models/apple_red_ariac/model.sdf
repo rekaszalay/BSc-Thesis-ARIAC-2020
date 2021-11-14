@@ -1,36 +1,56 @@
-<?xml version="1.0" ?>
-<sdf version="1.6">
-  <model name="apple_red_ariac">
-    <link name="link">
+<?xml version='1.0'?>
+<sdf version='1.6'>
+  <model name='apple_red_ariac'>
+    <link name='link'>
       <inertial>
-        <pose>0 0 0.005875 0 0 0</pose>
-        <mass>0.5</mass>
+        <mass>1</mass>
         <inertia>
-          <ixx>0.00019820251</ixx>
+          <ixx>0.166667</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.00019820251</iyy>
+          <iyy>0.166667</iyy>
           <iyz>0</iyz>
-          <izz>0.00038440503</izz>
+          <izz>0.166667</izz>
         </inertia>
+        <pose frame=''>0 0 0 0 -0 0</pose>
       </inertial>
-
-      <collision name="collision">
-        <max_contacts>10</max_contacts>
-        <pose>0 0 0.005875 0 0 0</pose>
+      <pose frame=''>-0 -0 0 0 -0 0</pose>
+      <gravity>1</gravity>
+      <self_collide>0</self_collide>
+      <kinematic>0</kinematic>
+      <enable_wind>0</enable_wind>
+      <visual name='visual'>
+        <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
-          <cylinder>
-            <length>0.012</length>
-            <radius>0.0392125</radius>
-          </cylinder>
+          <mesh>
+            <uri>model://apple_red_ariac/model.dae</uri>
+            <scale>0.5 0.5 0.5</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <lighting>1</lighting>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Red</name>
+          </script>
+          <shader type='pixel'>
+            <normal_map>__default__</normal_map>
+          </shader>
+        </material>
+        <transparency>0</transparency>
+        <cast_shadows>1</cast_shadows>
+      </visual>
+      <collision name='collision'>
+        <laser_retro>0</laser_retro>
+        <max_contacts>10</max_contacts>
+        <pose frame=''>0 0 0 0 -0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://apple_red_ariac/model.dae</uri>
+            <scale>0.5 0.5 0.5</scale>
+          </mesh>
         </geometry>
         <surface>
-          <contact>
-            <ode>
-              <max_vel>0.0</max_vel>
-              <min_depth>0.001</min_depth>
-            </ode>
-          </contact>
           <friction>
             <ode>
               <mu>1</mu>
@@ -49,24 +69,35 @@
               </ode>
             </torsional>
           </friction>
+          <bounce>
+            <restitution_coefficient>0</restitution_coefficient>
+            <threshold>1e+06</threshold>
+          </bounce>
+          <contact>
+            <collide_without_contact>0</collide_without_contact>
+            <collide_without_contact_bitmask>1</collide_without_contact_bitmask>
+            <collide_bitmask>1</collide_bitmask>
+            <ode>
+              <soft_cfm>0</soft_cfm>
+              <soft_erp>0.2</soft_erp>
+              <kp>1e+13</kp>
+              <kd>1</kd>
+              <max_vel>0.01</max_vel>
+              <min_depth>0</min_depth>
+            </ode>
+            <bullet>
+              <split_impulse>1</split_impulse>
+              <split_impulse_penetration_threshold>-0.01</split_impulse_penetration_threshold>
+              <soft_cfm>0</soft_cfm>
+              <soft_erp>0.2</soft_erp>
+              <kp>1e+13</kp>
+              <kd>1</kd>
+            </bullet>
+          </contact>
         </surface>
       </collision>
-
-      <visual name="visual">
-         <geometry>
-           <mesh>
-             <uri>model://apple_red_ariac/model.dae</uri>
-             <scale>0.007 0.007 0.007</scale>
-           </mesh>
-         </geometry>
-        <material>
-          <script>
-            <uri>model://arm_part_ariac/materials/scripts</uri>
-            <name>Gazebo/Red</name>
-          </script>
-        </material>
-       </visual>
     </link>
-
+    <static>0</static>
+    <allow_auto_disable>1</allow_auto_disable>
   </model>
 </sdf>

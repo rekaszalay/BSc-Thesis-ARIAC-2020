@@ -72,7 +72,7 @@ public:
    {
       if (msg->data != current_score_)
       {
-         ROS_INFO_STREAM("Score: " << msg->data);
+         // ROS_INFO_STREAM("Score: " << msg->data);
       }
       current_score_ = msg->data;
    }
@@ -106,7 +106,7 @@ public:
       if (!right_arm_has_been_zeroed_)
       {
          right_arm_has_been_zeroed_ = true;
-         ROS_INFO("Sending right arm to zero joint positions...");
+         // ROS_INFO("Sending right arm to zero joint positions...");
          //send_arm_to_zero_state(right_arm_joint_trajectory_publisher_, 1);
       }
    }
@@ -121,7 +121,7 @@ public:
       if (!left_arm_has_been_zeroed_)
       {
          left_arm_has_been_zeroed_ = true;
-         ROS_INFO("Sending left arm to zero joint positions...");
+         // ROS_INFO("Sending left arm to zero joint positions...");
          //send_arm_to_zero_state(left_arm_joint_trajectory_publisher_, 2);
       }
    }
@@ -136,7 +136,7 @@ public:
       if (!gantry_has_been_zeroed_)
       {
          gantry_has_been_zeroed_ = true;
-         ROS_INFO("Sending gantry to zero joint positions...");
+         // ROS_INFO("Sending gantry to zero joint positions...");
          //send_gantry_to_zero_state(right_arm_joint_trajectory_publisher_);
       }
    }
@@ -166,8 +166,8 @@ public:
       msg.points[0].positions.resize(msg.joint_names.size(), 0.0);
       // How long to take getting to the point (floating point seconds).
       msg.points[0].time_from_start = ros::Duration(0.001);
-      ROS_INFO_STREAM("Sending command:\n"
-                      << msg);
+      // ROS_INFO_STREAM("Sending command:\n"
+      //                 << msg);
       //joint_trajectory_publisher.publish(msg);
    }
    // %EndTag(ARM_ZERO)%
@@ -219,16 +219,16 @@ public:
             p.position.x = pc->points.at(point).x;
             p.position.y = pc->points.at(point).y;
             p.position.z = pc->points.at(point).z;
-            ROS_INFO_STREAM("[getColorOfClosestPoint] closest found point rgbd : " << p);
+            //ROS_INFO_STREAM("[getColorOfClosestPoint] closest found point rgbd : " << p);
             p = convert_to_frame(p, rgbd_camera_1_img.header.frame_id, "world");
-            ROS_INFO_STREAM("[getColorOfClosestPoint] closest found point world : " << p);
+            //ROS_INFO_STREAM("[getColorOfClosestPoint] closest found point world : " << p);
             // ROS_INFO((std::to_string(pc->points.at(point).x) + " " + std::to_string(pc->points.at(point).y) + " " + std::to_string(pc->points.at(point).z)).c_str());
          }
       }
       result.x;// /= 4.0f;
       result.y;// /= 4.0f;
       result.z;// /= 4.0f;
-      ROS_INFO(("Result color r:" + std::to_string(result.x) + " g: " + std::to_string(result.y) + " b: " + std::to_string(result.z)).c_str());
+      //ROS_INFO(("Result color r:" + std::to_string(result.x) + " g: " + std::to_string(result.y) + " b: " + std::to_string(result.z)).c_str());
       // ROS_INFO_STREAM("[getColorOfClosestPoint] result: "<<result);
       return result;
       //int pixelCount = rgbd_camera_1_img.height * rgbd_camera_1_img.width;
@@ -250,15 +250,15 @@ public:
          // ROS_INFO_STREAM(nextModel.pose);
          // ROS_INFO_STREAM(rgbd_camera_1_img.header.frame_id);
          nextModel.pose = convert_to_frame(nextModel.pose, "logical_camera_1_frame", "world");
-         ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose world 1 : " << nextModel);
-         nextModel.pose.position.z = nextModel.pose.position.z + 0.1;
+         //ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose world 1 : " << nextModel);
+         nextModel.pose.position.z = nextModel.pose.position.z;
          nextModel.pose = convert_to_frame(nextModel.pose, "world", rgbd_camera_1_img.header.frame_id);
-         ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose rgbd frame 2 : " << nextModel);
+         //ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose rgbd frame 2 : " << nextModel);
          pcl::PointXYZRGB point;
          point.x = nextModel.pose.position.x;
          point.y = nextModel.pose.position.y;
          point.z = nextModel.pose.position.z;
-         ROS_INFO_STREAM("[GetNextItemToMove] PointXYZRGB rgbd 3 : " << point);
+         //ROS_INFO_STREAM("[GetNextItemToMove] PointXYZRGB rgbd 3 : " << point);
 
          pcl::PointXYZ color = getColorOfClosestPoint(point);
          if (nextModel.type.find("apple") != std::string::npos) {
@@ -268,7 +268,7 @@ public:
                nextModel.type = "green_apple";
          }
          nextModel.pose = convert_to_frame(nextModel.pose, rgbd_camera_1_img.header.frame_id, "world");
-         ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose world 4 : " << nextModel.pose);
+         //ROS_INFO_STREAM("[GetNextItemToMove] nextModel.pose world 4 : " << nextModel.pose);
          return nextModel;
       }
    }
@@ -276,8 +276,10 @@ public:
    bool testCameras() {
       ROS_INFO("Testing cameras***************************************************************");
       ROS_INFO_STREAM(rgbd_camera_1_img.header.frame_id);
+      std::vector<nist_gear::Model> apples;
+      std::vector<pcl::PointXYZ> colors;
 
-      if (logical_camera_1_img.models.empty())return false;
+      if (logical_camera_1_img.models.empty())return true;
       else for (nist_gear::Model model : logical_camera_1_img.models) {
          rgbd_cam_screenshot = rgbd_camera_1_img;
          model.pose = convert_to_frame(model.pose, "logical_camera_1_frame", rgbd_camera_1_img.header.frame_id);
@@ -291,9 +293,12 @@ public:
                model.type = "red_apple";
             else
                model.type = "green_apple";
+            apples.push_back(model);
+            colors.push_back(color);
          }
-        // ROS_INFO_STREAM(model);
       }
+      ROS_INFO_STREAM("test results: ");
+      for (int i = 0; i < apples.size(); i++) ROS_INFO_STREAM(apples.at(i) << " color: " << colors.at(i));
       return false;
    }
 
@@ -424,7 +429,11 @@ int main(int argc, char **argv)
    {
       ros::Duration(0.5).sleep();
       if (first) {
-         //first = comp_class.testCameras();
+         first = false;// comp_class.testCameras();
+         geometry_msgs::Pose p1,p2,p3;
+         p1 = comp_class.getNextItemToMove().pose;
+         p2 = convert_to_frame(p1, "world", "rgbd_camera_1_frame");
+         ROS_INFO_STREAM("*******-------------------------------------------*****************\nrgbd_camera_1_frame " << p2 << "\nworld frame " << p1 << "\n*******-------------------------------------------*****************");
       }
       //nist_gear::Model model = comp_class.getNextItemToMove();
       // ROS_INFO(("Type: " + model.type + " Pose: " + std::to_string(model.pose.position.x) + ";"
