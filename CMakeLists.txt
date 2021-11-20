@@ -27,6 +27,7 @@ find_package(PCL REQUIRED)
 add_service_files(DIRECTORY srv
   FILES
   GetNextModel.srv
+  GetPlacePosition.srv
 )
 
 generate_messages(
@@ -48,6 +49,9 @@ catkin_package()
 ###########
 ## Build ##
 ###########
+SET(MY_FLAG ok) # ok || no
+
+if(MY_FLAG)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(${PCL_INCLUDE_DIRS})
@@ -69,6 +73,7 @@ add_executable(gantry_control_node
   )
 add_dependencies(gantry_control_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(gantry_control_node ${catkin_LIBRARIES})
+
 
 #############
 ## Install ##
@@ -116,3 +121,4 @@ install(FILES
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+endif(MY_FLAG)

@@ -67,80 +67,80 @@ public:
       // %EndTag(ADV_CMD)%
    }
 
-   /// Called when a new message is received.
-   void current_score_callback(const std_msgs::Float32::ConstPtr &msg)
-   {
-      if (msg->data != current_score_)
-      {
-         // ROS_INFO_STREAM("Score: " << msg->data);
-      }
-      current_score_ = msg->data;
-   }
+   // /// Called when a new message is received.
+   // void current_score_callback(const std_msgs::Float32::ConstPtr &msg)
+   // {
+   //    if (msg->data != current_score_)
+   //    {
+   //       // ROS_INFO_STREAM("Score: " << msg->data);
+   //    }
+   //    current_score_ = msg->data;
+   // }
 
-   /// Called when a new message is received.
-   void competition_state_callback(const std_msgs::String::ConstPtr &msg)
-   {
-      if (msg->data == "done" && competition_state_ != "done")
-      {
-         ROS_INFO("Competition ended.");
-      }
-      competition_state_ = msg->data;
-   }
+   // /// Called when a new message is received.
+   // void competition_state_callback(const std_msgs::String::ConstPtr &msg)
+   // {
+   //    if (msg->data == "done" && competition_state_ != "done")
+   //    {
+   //       ROS_INFO("Competition ended.");
+   //    }
+   //    competition_state_ = msg->data;
+   // }
 
-   /// Called when a new Order message is received.
-   void order_callback(const nist_gear::Order::ConstPtr &order_msg)
-   {
-      //ROS_INFO_STREAM("Received order:\n" << *order_msg);
-      received_orders_.push_back(*order_msg);
-   }
+   // /// Called when a new Order message is received.
+   // void order_callback(const nist_gear::Order::ConstPtr &order_msg)
+   // {
+   //    //ROS_INFO_STREAM("Received order:\n" << *order_msg);
+   //    received_orders_.push_back(*order_msg);
+   // }
 
    // %Tag(CB_CLASS)%
    /// Called when a new JointState message is received.
-   void right_arm_joint_state_callback(
-       const control_msgs::JointTrajectoryControllerState::ConstPtr &joint_state_msg)
-   {
-      //ROS_INFO_STREAM_THROTTLE(10,
-      //                         "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
-      //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
-      right_arm_current_joint_states_ = *joint_state_msg;
-      if (!right_arm_has_been_zeroed_)
-      {
-         right_arm_has_been_zeroed_ = true;
-         // ROS_INFO("Sending right arm to zero joint positions...");
-         //send_arm_to_zero_state(right_arm_joint_trajectory_publisher_, 1);
-      }
-   }
+   // void right_arm_joint_state_callback(
+   //     const control_msgs::JointTrajectoryControllerState::ConstPtr &joint_state_msg)
+   // {
+   //    //ROS_INFO_STREAM_THROTTLE(10,
+   //    //                         "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
+   //    //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
+   //    right_arm_current_joint_states_ = *joint_state_msg;
+   //    if (!right_arm_has_been_zeroed_)
+   //    {
+   //       right_arm_has_been_zeroed_ = true;
+   //       // ROS_INFO("Sending right arm to zero joint positions...");
+   //       //send_arm_to_zero_state(right_arm_joint_trajectory_publisher_, 1);
+   //    }
+   // }
 
-   void left_arm_joint_state_callback(
-       const control_msgs::JointTrajectoryControllerState::ConstPtr &joint_state_msg)
-   {
-      //ROS_INFO_STREAM_THROTTLE(10,
-      //                         "Joint States left arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
-      //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
-      left_arm_current_joint_states_ = *joint_state_msg;
-      if (!left_arm_has_been_zeroed_)
-      {
-         left_arm_has_been_zeroed_ = true;
-         // ROS_INFO("Sending left arm to zero joint positions...");
-         //send_arm_to_zero_state(left_arm_joint_trajectory_publisher_, 2);
-      }
-   }
+   // void left_arm_joint_state_callback(
+   //     const control_msgs::JointTrajectoryControllerState::ConstPtr &joint_state_msg)
+   // {
+   //    //ROS_INFO_STREAM_THROTTLE(10,
+   //    //                         "Joint States left arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
+   //    //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
+   //    left_arm_current_joint_states_ = *joint_state_msg;
+   //    if (!left_arm_has_been_zeroed_)
+   //    {
+   //       left_arm_has_been_zeroed_ = true;
+   //       // ROS_INFO("Sending left arm to zero joint positions...");
+   //       //send_arm_to_zero_state(left_arm_joint_trajectory_publisher_, 2);
+   //    }
+   // }
 
-   void gantry_joint_state_callback(
-       const sensor_msgs::JointState::ConstPtr &joint_state_msg)
-   {
-      //ROS_INFO_STREAM_THROTTLE(10,
-      //                         "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
-      //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
-      gantry_current_joint_states_ = *joint_state_msg;
-      if (!gantry_has_been_zeroed_)
-      {
-         gantry_has_been_zeroed_ = true;
-         // ROS_INFO("Sending gantry to zero joint positions...");
-         //send_gantry_to_zero_state(right_arm_joint_trajectory_publisher_);
-      }
-   }
-   // %EndTag(CB_CLASS)%
+   // void gantry_joint_state_callback(
+   //     const sensor_msgs::JointState::ConstPtr &joint_state_msg)
+   // {
+   //    //ROS_INFO_STREAM_THROTTLE(10,
+   //    //                         "Joint States right arm (throttled to 0.1 Hz):\n" << *joint_state_msg);
+   //    //ROS_INFO_STREAM("Joint States:\n" << *joint_state_msg);
+   //    gantry_current_joint_states_ = *joint_state_msg;
+   //    if (!gantry_has_been_zeroed_)
+   //    {
+   //       gantry_has_been_zeroed_ = true;
+   //       // ROS_INFO("Sending gantry to zero joint positions...");
+   //       //send_gantry_to_zero_state(right_arm_joint_trajectory_publisher_);
+   //    }
+   // }
+   // // %EndTag(CB_CLASS)%
 
    // %Tag(ARM_ZERO)%
    /// Create a JointTrajectory with all positions set to zero, and command the arm.
@@ -173,13 +173,19 @@ public:
    // %EndTag(ARM_ZERO)%
 
    /// Called when a new LogicalCameraImage message is received.
-   void logical_camera_callback(
+   void logical_camera_1_callback(
        const nist_gear::LogicalCameraImage::ConstPtr &image_msg)
    {
       ROS_INFO_STREAM_THROTTLE(10,
-                               "Logical camera: '" << image_msg->models.size() << "' objects.");
-      ///TODO:megcsinálni mindkettőre
+                               "Logical camera 1: '" << image_msg->models.size() << "' objects.");
       logical_camera_1_img = *image_msg;
+   }
+   void logical_camera_2_callback(
+       const nist_gear::LogicalCameraImage::ConstPtr &image_msg)
+   {
+      ROS_INFO_STREAM_THROTTLE(10,
+                               "Logical camera 2: '" << image_msg->models.size() << "' objects.");
+      logical_camera_2_img = *image_msg;
    }
 
    void rgbd_camera_callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
@@ -211,7 +217,7 @@ public:
       {
          for (int point : resultPtIdx)
          {
-            ROS_INFO_STREAM("found point all details **************************************\n" << pc->points.at(point));
+            //ROS_INFO_STREAM("found point all details **************************************\n" << pc->points.at(point));
             result.x += pc->points.at(point).b; //hülye a szenzor
             result.y += pc->points.at(point).g;
             result.z += pc->points.at(point).r;
@@ -273,6 +279,41 @@ public:
       }
    }
 
+   geometry_msgs::Pose getNextPlacePosition(std::string type) {
+      geometry_msgs::Pose poseRed, poseGreen;
+      poseRed.position.x= 2.5;
+      poseRed.position.y= 3.3;
+      poseRed.position.z= 1.4;
+      poseGreen.position.x= 2.5;
+      poseGreen.position.y= 3.9;
+      poseGreen.position.z= 1.4;
+      if (logical_camera_2_img.models.empty()) {
+         if (type == "red_apple") return poseRed;
+         if (type == "green_apple") return poseGreen;
+      }
+      nist_gear::Model lastModel;lastModel.type = "null";
+      for(nist_gear::Model model : logical_camera_2_img.models) {
+         if (model.type == type) {
+            if (lastModel.type == "null") lastModel = model;
+            if (abs(lastModel.pose.position.y - model.pose.position.y) < 0.05) {
+               if (model.pose.position.x > lastModel.pose.position.x) lastModel = model;
+            } else if (model.pose.position.y > lastModel.pose.position.y) lastModel = model;
+         }
+      }
+      if (lastModel.type == "null") {
+         if (type.find("red") != std::string::npos) return poseRed;
+         else return poseGreen;
+      } else if (lastModel.pose.position.x + 0.2 > 3.8) {
+         lastModel.pose.position.x = 2.5;
+         lastModel.pose.position.y += 0.2;
+         return lastModel.pose;
+      } else {
+         lastModel.pose.position.x += 0.2;
+         return lastModel.pose;
+      }
+
+   }
+
    bool testCameras() {
       ROS_INFO("Testing cameras***************************************************************");
       ROS_INFO_STREAM(rgbd_camera_1_img.header.frame_id);
@@ -309,13 +350,11 @@ public:
       return true;
    }
 
-   /// Called when a new Proximity message is received.
-   void break_beam_callback(const nist_gear::Proximity::ConstPtr &msg)
+   bool getNextPlacePosition(controller::GetPlacePosition::Request &req, controller::GetPlacePosition::Response &res)
    {
-      if (msg->object_detected)
-      { // If there is an object in proximity.
-         ROS_INFO("Break beam triggered.");
-      }
+      ROS_INFO("GetNextItemToMove is called...");
+      res.position = getNextPlacePosition(req.type);
+      return true;
    }
 
 private:
@@ -340,16 +379,6 @@ void proximity_sensor_callback(const sensor_msgs::Range::ConstPtr &msg)
    }
 }
 
-void laser_profiler_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
-{
-   size_t number_of_valid_ranges = std::count_if(
-       msg->ranges.begin(), msg->ranges.end(), [](const float f)
-       { return std::isfinite(f); });
-   if (number_of_valid_ranges > 0)
-   {
-      ROS_INFO_THROTTLE(1, "Laser profiler sees something.");
-   }
-}
 
 // %Tag(MAIN)%
 int main(int argc, char **argv)
@@ -362,62 +391,59 @@ int main(int argc, char **argv)
    // Instance of custom class from above.
    MyCompetitionClass comp_class(node);
 
-   // Subscribe to the '/ariac/current_score' topic.
-   ros::Subscriber current_score_subscriber = node.subscribe(
-       "/ariac/current_score", 10,
-       &MyCompetitionClass::current_score_callback, &comp_class);
+   // // Subscribe to the '/ariac/current_score' topic.
+   // ros::Subscriber current_score_subscriber = node.subscribe(
+   //     "/ariac/current_score", 10,
+   //     &MyCompetitionClass::current_score_callback, &comp_class);
 
-   // Subscribe to the '/ariac/competition_state' topic.
-   ros::Subscriber competition_state_subscriber = node.subscribe(
-       "/ariac/competition_state", 10,
-       &MyCompetitionClass::competition_state_callback, &comp_class);
+   // // Subscribe to the '/ariac/competition_state' topic.
+   // ros::Subscriber competition_state_subscriber = node.subscribe(
+   //     "/ariac/competition_state", 10,
+   //     &MyCompetitionClass::competition_state_callback, &comp_class);
 
-   // %Tag(SUB_CLASS)%
-   // Subscribe to the '/ariac/orders' topic.
-   ros::Subscriber orders_subscriber = node.subscribe(
-       "/ariac/orders", 10,
-       &MyCompetitionClass::order_callback, &comp_class);
-   // %EndTag(SUB_CLASS)%
+   // // %Tag(SUB_CLASS)%
+   // // Subscribe to the '/ariac/orders' topic.
+   // ros::Subscriber orders_subscriber = node.subscribe(
+   //     "/ariac/orders", 10,
+   //     &MyCompetitionClass::order_callback, &comp_class);
+   // // %EndTag(SUB_CLASS)%
 
-   ros::Subscriber gantry_joint_state_subscriber = node.subscribe(
-       "/ariac/gantry/joint_states", 10,
-       &MyCompetitionClass::gantry_joint_state_callback, &comp_class);
+   // ros::Subscriber gantry_joint_state_subscriber = node.subscribe(
+   //     "/ariac/gantry/joint_states", 10,
+   //     &MyCompetitionClass::gantry_joint_state_callback, &comp_class);
 
-   // Subscribe to the '/ariac/joint_states' topic.
-   ros::Subscriber right_arm_joint_state_subscriber = node.subscribe(
-       "/ariac/gantry/right_arm_controller/state", 10,
-       &MyCompetitionClass::right_arm_joint_state_callback, &comp_class);
+   // // Subscribe to the '/ariac/joint_states' topic.
+   // ros::Subscriber right_arm_joint_state_subscriber = node.subscribe(
+   //     "/ariac/gantry/right_arm_controller/state", 10,
+   //     &MyCompetitionClass::right_arm_joint_state_callback, &comp_class);
 
-   ros::Subscriber left_arm_joint_state_subscriber = node.subscribe(
-       "/ariac/gantry/left_arm_controller/state", 10,
-       &MyCompetitionClass::left_arm_joint_state_callback, &comp_class);
+   // ros::Subscriber left_arm_joint_state_subscriber = node.subscribe(
+   //     "/ariac/gantry/left_arm_controller/state", 10,
+   //     &MyCompetitionClass::left_arm_joint_state_callback, &comp_class);
 
-      ros::ServiceServer next_model_service =
-          node.advertiseService("/ariac/next_model", &MyCompetitionClass::getNextItemToMove, &comp_class);
+   ros::ServiceServer next_model_service =
+         node.advertiseService("/ariac/next_model", &MyCompetitionClass::getNextItemToMove, &comp_class);
 
+   ros::ServiceServer next_place_position_service =
+         node.advertiseService("/ariac/next_place_position", &MyCompetitionClass::getNextPlacePosition, &comp_class);
    // %Tag(SUB_FUNC)%
    // Subscribe to the '/ariac/proximity_sensor_1' topic.
    ros::Subscriber proximity_sensor_subscriber = node.subscribe(
        "/ariac/proximity_sensor_1", 10, proximity_sensor_callback);
    // %EndTag(SUB_FUNC)%
 
-   // Subscribe to the '/ariac/break_beam_1_change' topic.
-   ros::Subscriber break_beam_subscriber = node.subscribe(
-       "/ariac/break_beam_1_change", 10,
-       &MyCompetitionClass::break_beam_callback, &comp_class);
-
    ros::Subscriber rgbd_camera_subscriber = node.subscribe(
        "/ariac/rgbd_camera_1/points", 10,
        &MyCompetitionClass::rgbd_camera_callback, &comp_class);
 
    // Subscribe to the '/ariac/logical_camera_1' topic.
-   ros::Subscriber logical_camera_subscriber = node.subscribe(
+   ros::Subscriber logical_camera_1_subscriber = node.subscribe(
        "/ariac/logical_camera_1", 10,
-       &MyCompetitionClass::logical_camera_callback, &comp_class);
+       &MyCompetitionClass::logical_camera_1_callback, &comp_class);
 
-   // Subscribe to the '/ariac/laser_profiler_1' topic.
-   ros::Subscriber laser_profiler_subscriber = node.subscribe(
-       "/ariac/laser_profiler_1", 10, laser_profiler_callback);
+   ros::Subscriber logical_camera_2_subscriber = node.subscribe(
+       "/ariac/logical_camera_2", 10,
+       &MyCompetitionClass::logical_camera_2_callback, &comp_class);
 
    ROS_INFO("Setup complete.");
    start_competition(node);

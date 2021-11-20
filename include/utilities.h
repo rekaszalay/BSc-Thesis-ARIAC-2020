@@ -7,6 +7,7 @@
 #include <nist_gear/LogicalCameraImage.h>
 #include <nist_gear/Order.h>
 #include <nist_gear/Proximity.h>
+#include <nist_gear/VacuumGripperState.h>
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -29,6 +30,7 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 
 #include <controller/GetNextModel.h>
+#include <controller/GetPlacePosition.h>
 
 const double PI = 3.141592;
 
