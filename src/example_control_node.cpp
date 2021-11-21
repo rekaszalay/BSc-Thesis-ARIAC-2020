@@ -287,12 +287,25 @@ public:
       poseGreen.position.x= 2.5;
       poseGreen.position.y= 3.9;
       poseGreen.position.z= 1.4;
+      ROS_INFO_STREAM("[getNextPlacePosition] checking for models type: " << type); 
       if (logical_camera_2_img.models.empty()) {
-         if (type == "red_apple") return poseRed;
-         if (type == "green_apple") return poseGreen;
+         if (type == "red_apple") {
+            ROS_INFO_STREAM("[getNextPlacePosition] no models, return red"); 
+            return poseRed;
+         }
+         if (type == "green_apple") {
+            ROS_INFO_STREAM("[getNextPlacePosition] no models, return green"); 
+            return poseGreen;
+         };
       }
       nist_gear::Model lastModel;lastModel.type = "null";
+
+      std::vector<nist_gear::Model> LCmodels;
       for(nist_gear::Model model : logical_camera_2_img.models) {
+         model.pose = convert_to_frame(model.pose, "logical_camera_2_frame", "world");
+         LCmodels.push_back(model);
+      }
+      for(nist_gear::Model model : LCmodels) {
          if (model.type == type) {
             if (lastModel.type == "null") lastModel = model;
             if (abs(lastModel.pose.position.y - model.pose.position.y) < 0.05) {
@@ -352,7 +365,7 @@ public:
 
    bool getNextPlacePosition(controller::GetPlacePosition::Request &req, controller::GetPlacePosition::Response &res)
    {
-      ROS_INFO("GetNextItemToMove is called...");
+      ROS_INFO("GetNextPlacePosition is called...");
       res.position = getNextPlacePosition(req.type);
       return true;
    }
@@ -459,7 +472,7 @@ int main(int argc, char **argv)
          geometry_msgs::Pose p1,p2,p3;
          p1 = comp_class.getNextItemToMove().pose;
          p2 = convert_to_frame(p1, "world", "rgbd_camera_1_frame");
-         ROS_INFO_STREAM("*******-------------------------------------------*****************\nrgbd_camera_1_frame " << p2 << "\nworld frame " << p1 << "\n*******-------------------------------------------*****************");
+         // ROS_INFO_STREAM("*******-------------------------------------------*****************\nrgbd_camera_1_frame " << p2 << "\nworld frame " << p1 << "\n*******-------------------------------------------*****************");
       }
       //nist_gear::Model model = comp_class.getNextItemToMove();
       // ROS_INFO(("Type: " + model.type + " Pose: " + std::to_string(model.pose.position.x) + ";"

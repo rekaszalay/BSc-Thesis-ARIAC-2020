@@ -13,6 +13,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 
 ros::ServiceClient getNextPart_client;
+ros::ServiceClient getNextPlacePosition_client;
 
 ros::Publisher planning_scene_diff_publisher;
 ros::ServiceClient planning_scene_diff_client;
@@ -31,6 +32,10 @@ static const std::string PLANNING_GROUP_LEFT_EE = "Left_Endeffector";
 const double EPS3 = 0.1;
 std::vector<double> armsup_left = {PI / 2, 0 - EPS3, PI / 2 + EPS3, PI / 2, 0, 0};
 std::vector<double> armsup_right = {-PI / 2, -PI + EPS3, -PI / 2 - EPS3, PI / 2, 0, 0};
+
+std::vector<double> gantry_bin = {2.9, 0.7, 0};
+std::vector<double> gantry_shelf_right = {3.07, 2.5, 0};
+std::vector<double> gantry_shelf_left = {0, 0, PI};
 /// NEW here/
 std::vector<double> armsup_left_shelf = {PI / 2, -PI / 2, 2.7, PI / 2, 0, 0};
 std::vector<double> armsup_right_shelf = {-PI / 2, -PI / 2, -2.7, PI / 2, 0, 0};
