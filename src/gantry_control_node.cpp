@@ -65,34 +65,33 @@ public:
       }
 
       void grabPart(std::string arm, geometry_msgs::Point targetPosition) {
-            moveit_msgs::RobotTrajectory trajectory;
-            std::vector<geometry_msgs::Pose> waypoints;
-            geometry_msgs::Pose waypoint;
-            waypoint.position=targetPosition;
-            waypoint.position.z += 0.3;
-            waypoint.position.x += 0.1;
-            waypoints.push_back(waypoint);
-            ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
-            waypoint.orientation = gripperDown;
-            waypoints.push_back(waypoint);
-            ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
-            waypoint.position.x -= 0.1;
-            waypoint.position.z -= 0.1;
-            waypoints.push_back(waypoint);
-            ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
-            waypoint.position.z -= 0.105;
-            waypoints.push_back(waypoint);
-            ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
             moveit::planning_interface::MoveGroupInterface *moveGroup;
             if (arm == "left") moveGroup = &move_group_la;
             else if (arm == "right") moveGroup = &move_group_ra;
             else {ROS_INFO_STREAM("[grabPart] Invalid arm ID!"); return;}
+            moveit_msgs::RobotTrajectory trajectory;
+            std::vector<geometry_msgs::Pose> waypoints;
+            geometry_msgs::Pose waypoint;
+            waypoint.position = targetPosition;
+            waypoint.position.z += 0.3;
+            waypoint.orientation = gripperDown;
+            waypoints.push_back(waypoint);
+            //ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+            waypoint.position.z -= 0.105;
+            waypoints.push_back(waypoint);
+            //ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+            waypoint.position.z -= 0.1;
+            waypoints.push_back(waypoint);
+            //ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+
             moveit_msgs::Constraints cons;
             moveit_msgs::OrientationConstraint ocons;
+            ocons.header = moveGroup->getCurrentPose().header;
+            ocons.link_name = moveGroup->getEndEffectorLink();
             ocons.orientation = moveGroup->getCurrentPose().pose.orientation;
-            ocons.absolute_x_axis_tolerance = 2;
-            ocons.absolute_y_axis_tolerance = 2;
-            ocons.absolute_z_axis_tolerance = 2;
+            ocons.absolute_x_axis_tolerance = 0.5;
+            ocons.absolute_y_axis_tolerance = 0.5;
+            ocons.absolute_z_axis_tolerance = 0.5;
             ocons.weight = 1;
             cons.orientation_constraints = {ocons};
             moveGroup->setPathConstraints(cons);
@@ -107,6 +106,8 @@ public:
                   fraction = moveGroup->computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
                   attempts++;
             }
+            trajectory.joint_trajectory.header.stamp = ros::Time::now();
+            trajectory.multi_dof_joint_trajectory.header.stamp = ros::Time::now();
             moveGroup->execute(trajectory);
       }
 
@@ -368,8 +369,12 @@ int main(int argc, char **argv)
       nist_gear::Model nextModel = gantry.pickPart();
       //gantry.getPlacePosition(nextModel.type);
       //ROS_INFO_STREAM("after pickpart " << nextModel.pose);
+
+
       //gantry.move_full_robot(gantry_bin, armsup_right_shelf, armsup_left_shelf);
       gantry.move_full_robot({nextModel.pose.position.x + 0.4, nextModel.pose.position.y - 0.4, 0.0}, armsup_right_shelf, armsup_left_shelf);
+
+
       //move_group_g.setPoseTarget(target_pose1);
       // ROS_INFO(("x: " + std::to_string(target[0]) + " y: " + std::to_string(target[1])).c_str());
       moveit::planning_interface::MoveGroupInterface::Plan my_plan;
@@ -398,7 +403,7 @@ int main(int argc, char **argv)
       // nextModel.pose = convert_to_frame(nextModel.pose, "world", "right_base");
       // ROS_INFO_STREAM("right_base " << nextModel);
       geometry_msgs::Pose tP;
-      // tP.position=nextModel.pose.position;
+      tP.position=nextModel.pose.position;
       // tP = convert_to_frame(tP, "world", "right_ee_link");
       // tP = move_group_ra.getRandomPose();
       //ROS_INFO("before tP");
@@ -435,50 +440,53 @@ int main(int argc, char **argv)
       // move_group_ra.execute(my_plan);
       // ROS_INFO_STREAM("Current Right_Arm "<<move_group_ra.getCurrentPose().pose);
 
-      ocons.orientation = gantry.move_group_ra.getCurrentPose().pose.orientation;
-      ocons.absolute_x_axis_tolerance = 0.5;
-      ocons.absolute_y_axis_tolerance = 0.5;
-      ocons.absolute_z_axis_tolerance = 0.5;
-      ocons.weight = 1;
-      cons.orientation_constraints = {ocons};
-      gantry.move_group_ra.setPathConstraints(cons);
-      // ROS_INFO_STREAM("Current Right_Arm starting "<<move_group_ra.getCurrentPose().pose);
-
+      // ocons.orientation = gantry.move_group_ra.getCurrentPose().pose.orientation;
+      // ocons.absolute_x_axis_tolerance = 0.5;
+      // ocons.absolute_y_axis_tolerance = 0.5;
+      // ocons.absolute_z_axis_tolerance = 0.5;
+      // ocons.weight = 1;
+      // cons.orientation_constraints = {ocons};
+      // gantry.move_group_ra.setPathConstraints(cons);
+      // // // ROS_INFO_STREAM("Current Right_Arm starting "<<move_group_ra.getCurrentPose().pose);
+      double fraction;
       moveit_msgs::RobotTrajectory trajectory;
       std::vector<geometry_msgs::Pose> waypoints;
-      geometry_msgs::Pose tmpPose;
-      //waypoints.push_back(tP);
-      tP.orientation = orient.orientation;
-      waypoints.push_back(tP);
-      tP.position.z -= 0.105;
-      waypoints.push_back(tP);
-      //tP.position.y-=0.1;
-      tP.position.z -= 0.1;
-      waypoints.push_back(tP);
-      // tP.position.z += 0.15;
+      // geometry_msgs::Pose tmpPose;
+      // //waypoints.push_back(tP);
+      // tP.orientation = orient.orientation;
       // waypoints.push_back(tP);
+      // tP.position.z -= 0.105;
+      // waypoints.push_back(tP);
+      // //tP.position.y-=0.1;
+      // tP.position.z -= 0.1;
+      // waypoints.push_back(tP);
+      // // tP.position.z += 0.15;
+      // // waypoints.push_back(tP);
       const double jump_threshold = 0.0;
       const double eef_step = 0.15;
-      double fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
-      ROS_INFO_STREAM("[Cartesian path][Reach for apple] fraction = " << fraction);
+      // // double fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
+      // // ROS_INFO_STREAM("[Cartesian path][Reach for apple] fraction = " << fraction);
       int attempts = 0;
-      while (std::abs(fraction - 1.0f) > 0.01 && attempts < 5)
-      {
-            // tmpPose = move_group_ra.getCurrentPose().pose;
-            // tmpPose.position.x -= 0.1;
-            // move_group_ra.setPoseTarget(tmpPose);
-            // move_group_ra.move();
-            ROS_INFO("[Reach for apple] Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
-            fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
-            attempts++;
-      }
-      trajectory.joint_trajectory.header.stamp = ros::Time::now();
-      trajectory.multi_dof_joint_trajectory.header.stamp = ros::Time::now();
+      // while (std::abs(fraction - 1.0f) > 0.01 && attempts < 5)
+      // {
+      //       // tmpPose = move_group_ra.getCurrentPose().pose;
+      //       // tmpPose.position.x -= 0.1;
+      //       // move_group_ra.setPoseTarget(tmpPose);
+      //       // move_group_ra.move();
+      //       ROS_INFO("[Reach for apple] Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+      //       fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
+      //       attempts++;
+      // }
+      // trajectory.joint_trajectory.header.stamp = ros::Time::now();
+      // trajectory.multi_dof_joint_trajectory.header.stamp = ros::Time::now();
       gantry.gripperControl("right", true);
       // ROS_INFO_STREAM("Current Right_Arm "<<move_group_ra.getCurrentPose().pose);
+      
+
       ROS_INFO_STREAM("nextModel.pose.position: " << nextModel.pose.position);
-      //gantry.grabPart("right", nextModel.pose.position);
-      gantry.move_group_ra.execute(trajectory);
+      ROS_INFO_STREAM("tP.position: " << tP.position);
+      gantry.grabPart("right", nextModel.pose.position);
+      //gantry.move_group_ra.execute(trajectory);
       // ROS_INFO_STREAM("Current Right_Arm "<<move_group_ra.getCurrentPose().pose);
       // ROS_INFO_STREAM("Current Right_Arm "<<move_group_ra.getCurrentPose().pose.orientation);
       ros::Duration(1.0).sleep();
@@ -529,9 +537,9 @@ int main(int argc, char **argv)
       tP.position.x += 0.1;
       waypoints.push_back(tP);
       fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
-      ROS_INFO_STREAM("[Cartesian path][grab apple again] fraction = " << fraction);
+      ROS_INFO_STREAM("[Cartesian path][withdraw arm] fraction = " << fraction);
       attempts = 0;
-      ROS_INFO_STREAM("[RA EE link] " << gantry.move_group_ra.getEndEffectorLink());
+      // ROS_INFO_STREAM("[RA EE link] " << gantry.move_group_ra.getEndEffectorLink());
       while (std::abs(fraction - 1.0f) > 0.01 && attempts < 5)
       {
             ROS_INFO("[Lift apple] Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
