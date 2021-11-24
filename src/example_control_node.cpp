@@ -147,10 +147,10 @@ public:
    geometry_msgs::Pose getNextPlacePosition(std::string type) {
       geometry_msgs::Pose poseRed, poseGreen;
       poseRed.position.x= 2.5;
-      poseRed.position.y= 3.7;
+      poseRed.position.y= 3.1;
       poseRed.position.z= 1.5;
       poseGreen.position.x= 2.5;
-      poseGreen.position.y= 3.1;
+      poseGreen.position.y= 3.7;
       poseGreen.position.z= 1.5;
       ROS_INFO_STREAM("[getNextPlacePosition] checking for model type: " << type); 
       if (logical_camera_2_img.models.empty()) {
