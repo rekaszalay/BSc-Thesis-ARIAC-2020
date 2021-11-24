@@ -34,7 +34,7 @@ std::vector<double> armsup_left = {PI / 2, 0 - EPS3, PI / 2 + EPS3, PI / 2, 0, 0
 std::vector<double> armsup_right = {-PI / 2, -PI + EPS3, -PI / 2 - EPS3, PI / 2, 0, 0};
 
 std::vector<double> gantry_bin = {2.9, 0.7, 0};
-std::vector<double> gantry_shelf_right = {3.5, 2.5, 0};
+std::vector<double> gantry_shelf_right = {3.6, 2.4, 0};
 std::vector<double> gantry_shelf_left = {0, 0, PI};
 
 std::vector<double> armsup_left_shelf = {PI / 2, -PI / 2, 2.7, PI / 2, 0, 0};

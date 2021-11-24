@@ -66,13 +66,15 @@ public:
             waypoint.position.z += 0.3;
             waypoint.orientation = gripperDown;
             waypoints.push_back(waypoint);
-            //ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+            // ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
             waypoint.position.z -= 0.105;
             waypoints.push_back(waypoint);
-            //ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+            // ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
             waypoint.position.z -= 0.1;
             waypoints.push_back(waypoint);
-            //ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+            waypoint.position.z += 0.15;
+            waypoints.push_back(waypoint);
+            // ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
 
             moveit_msgs::Constraints cons;
             moveit_msgs::OrientationConstraint ocons;
@@ -168,15 +170,16 @@ int main(int argc, char **argv)
           node.serviceClient<moveit_msgs::GetPlanningScene>("get_planning_scene");
       planning_scene_get_client.waitForExistence();
 
-      robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-      const moveit::core::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
-      moveit::core::RobotStatePtr kinematic_state(new moveit::core::RobotState(kinematic_model));
-      kinematic_state->setToDefaultValues();
-      geometry_msgs::Pose orient;
-      orient.orientation.x = 0.0;
-      orient.orientation.y = 0.707;
-      orient.orientation.z = 0.0;
-      orient.orientation.w = 0.707;
+      // robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+      // const moveit::core::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
+      // moveit::core::RobotStatePtr kinematic_state(new moveit::core::RobotState(kinematic_model));
+      // kinematic_state->setToDefaultValues();
+
+      // geometry_msgs::Pose orient;
+      // orient.orientation.x = 0.0;
+      // orient.orientation.y = 0.707;
+      // orient.orientation.z = 0.0;
+      // orient.orientation.w = 0.707;
 
       moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
       moveit_msgs::ApplyPlanningScene aps;
@@ -184,77 +187,81 @@ int main(int argc, char **argv)
       planning_scene_interface.applyPlanningScene(aps.request.scene);
       planning_scene_diff_client.call(aps);
 
-      nist_gear::Model nextModel = gantry.pickPart();
-
       //move robot to bin
-      bool test = false;
-      if (test) {
-            gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, armsup_left_shelf);
-            gantry.grabPart("right", gantry.getPlacePosition("green_apple").position);
-      } else gantry.move_full_robot({nextModel.pose.position.x + 0.4, nextModel.pose.position.y - 0.4, 0.0}, armsup_right_shelf, armsup_left_shelf);
-
-      //grab apple
-      gantry.gripperControl("right", true);
-      ROS_INFO_STREAM("nextModel.pose.position: " << nextModel.pose.position);
-      gantry.grabPart("right", nextModel.pose.position);
-      ros::Duration(1.0).sleep();
-
-      moveit_msgs::AttachedCollisionObject aco;
-      aco.object.id = "attachedApple";
-      aco.object.header.frame_id = gantry.move_group_ra.getEndEffectorLink();
-      aco.link_name = gantry.move_group_ra.getEndEffectorLink();
-      geometry_msgs::Pose acoP;
-      acoP.orientation.w = 1.0;
-      shape_msgs::SolidPrimitive primitive;
-      primitive.type = primitive.CYLINDER;
-      primitive.dimensions.resize(3);
-      primitive.dimensions[primitive.CYLINDER_HEIGHT] = 0.2;
-      primitive.dimensions[primitive.CYLINDER_RADIUS] = 0.11;
-
-      aco.object.primitives.push_back(primitive);
-      aco.object.primitive_poses.push_back(acoP);
-
-      aco.object.operation = aco.object.ADD;
-      aps.request.scene.is_diff = true;
-      planning_scene_interface.applyPlanningScene(aps.request.scene);
-      
-      // lift arm after grabbing apple
-      double fraction;
-      moveit_msgs::RobotTrajectory trajectory;
-      std::vector<geometry_msgs::Pose> waypoints;
-      geometry_msgs::Pose tP;
-      tP.position = nextModel.pose.position;
-      tP.position.z +=  0.05;
-      const double jump_threshold = 0.0;
-      const double eef_step = 0.15;
-      int attempts = 0;
-      gantry.move_group_ra.clearPathConstraints();
-      gantry.move_group_ra.setPlanningTime(10.0);
-      tP.position.z += 0.1;
-      waypoints.push_back(tP);
-      tP.position.z += 0.1;
-      tP.position.x += 0.1;
-      waypoints.push_back(tP);
-      fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
-      ROS_INFO_STREAM("[Cartesian path][withdraw arm] fraction = " << fraction);
-      attempts = 0;
-      while (std::abs(fraction - 1.0f) > 0.01 && attempts < 5)
+      while (ros::ok())
       {
-            ROS_INFO("[Lift apple] Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
-            fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
-            attempts++;
+            nist_gear::Model nextModel = gantry.pickPart();
+            if (nextModel.type == "null") {ros::Duration(1).sleep(); continue;}
+            bool test = false;
+            if (test)
+            {
+                  gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, armsup_left_shelf);
+                  gantry.grabPart("right", gantry.getPlacePosition("apple_green").position);
+            }
+            else
+                  gantry.move_full_robot({nextModel.pose.position.x + 0.4, nextModel.pose.position.y - 0.4, 0.0}, armsup_right_shelf, armsup_left_shelf);
+
+            //grab apple
+            gantry.gripperControl("right", true);
+            gantry.grabPart("right", nextModel.pose.position);
+
+            moveit_msgs::AttachedCollisionObject aco;
+            aco.object.id = "attachedApple";
+            aco.object.header.frame_id = gantry.move_group_ra.getEndEffectorLink();
+            aco.link_name = gantry.move_group_ra.getEndEffectorLink();
+            geometry_msgs::Pose acoP;
+            acoP.orientation.w = 1.0;
+            shape_msgs::SolidPrimitive primitive;
+            primitive.type = primitive.CYLINDER;
+            primitive.dimensions.resize(3);
+            primitive.dimensions[primitive.CYLINDER_HEIGHT] = 0.2;
+            primitive.dimensions[primitive.CYLINDER_RADIUS] = 0.11;
+
+            aco.object.primitives.push_back(primitive);
+            aco.object.primitive_poses.push_back(acoP);
+
+            aco.object.operation = aco.object.ADD;
+            aps.request.scene.is_diff = true;
+            planning_scene_interface.applyPlanningScene(aps.request.scene);
+
+            // // lift arm after grabbing apple
+            // double fraction;
+            // moveit_msgs::RobotTrajectory trajectory;
+            // std::vector<geometry_msgs::Pose> waypoints;
+            geometry_msgs::Pose tP;
+            // tP.position = nextModel.pose.position;
+            // tP.position.z +=  0.05;
+            // const double jump_threshold = 0.0;
+            // const double eef_step = 0.15;
+            // int attempts = 0;
+            // gantry.move_group_ra.clearPathConstraints();
+            // gantry.move_group_ra.setPlanningTime(10.0);
+            // tP.position.z += 0.1;
+            // waypoints.push_back(tP);
+            // tP.position.z += 0.1;
+            // tP.position.x += 0.1;
+            // waypoints.push_back(tP);
+            // fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
+            // ROS_INFO_STREAM("[Cartesian path][withdraw arm] fraction = " << fraction);
+            // attempts = 0;
+            // while (std::abs(fraction - 1.0f) > 0.01 && attempts < 5)
+            // {
+            //       ROS_INFO("[Lift apple] Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+            //       fraction = gantry.move_group_ra.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
+            //       attempts++;
+            // }
+            // gantry.move_group_ra.execute(trajectory);
+
+            tP.position = gantry.getPlacePosition(nextModel.type).position;
+            ROS_INFO_STREAM("[placePart] gantry moves to " << tP);
+            tP.position.z += 0.02;
+            gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, {});
+
+            gantry.grabPart("right", tP.position);
+
+            gantry.gripperControl("right", false);
+            gantry.move_full_robot({}, armsup_right_shelf, {});
       }
-      gantry.move_group_ra.execute(trajectory);
-
-      tP.position = gantry.getPlacePosition(nextModel.type).position;
-      ROS_INFO_STREAM("[placePart] gantry moves to " << tP);
-      tP.position.z += 0.02;
-      gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, {});
-
-      gantry.grabPart("right", tP.position);
-
-      gantry.gripperControl("right", false);
-      gantry.move_full_robot({}, armsup_right_shelf, {});
 
       spinner.stop();
       ros::shutdown();

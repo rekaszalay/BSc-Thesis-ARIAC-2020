@@ -102,15 +102,28 @@ public:
 
    nist_gear::Model getNextItemToMove()
    {
+      nist_gear::Model nextModel;
+      nextModel.type="null";
+      std::vector<nist_gear::Model> logical_camera_models(logical_camera_1_img.models);
       if (logical_camera_1_img.models.empty())
       {
          ROS_INFO("Logical camera sees nothing.");
-         throw "Logical camera sees nothing.";
+         return nextModel;
       }
       else
       {  
          rgbd_cam_screenshot = rgbd_camera_1_img;
-         nist_gear::Model nextModel = logical_camera_1_img.models.at(0);
+         for (nist_gear::Model model : logical_camera_models) {
+            if (model.type.find("apple") != std::string::npos){
+               nextModel = model;
+               break;
+            }
+         }
+         if (nextModel.type == "null")
+         {
+            ROS_INFO("Logical camera sees no apple.");
+            return nextModel;
+         }
          nextModel.pose = convert_to_frame(nextModel.pose, "logical_camera_1_frame", "world");
          nextModel.pose.position.z = nextModel.pose.position.z;
          nextModel.pose = convert_to_frame(nextModel.pose, "world", rgbd_camera_1_img.header.frame_id);
@@ -122,9 +135,9 @@ public:
          pcl::PointXYZ color = getColorOfClosestPoint(point);
          if (nextModel.type.find("apple") != std::string::npos) {
             if (color.x > color.y)
-               nextModel.type = "red_apple";
+               nextModel.type = "apple_red";
             else
-               nextModel.type = "green_apple";
+               nextModel.type = "apple_green";
          }
          nextModel.pose = convert_to_frame(nextModel.pose, rgbd_camera_1_img.header.frame_id, "world");
          return nextModel;
@@ -133,24 +146,25 @@ public:
 
    geometry_msgs::Pose getNextPlacePosition(std::string type) {
       geometry_msgs::Pose poseRed, poseGreen;
-      poseRed.position.x= 3.2;
-      poseRed.position.y= 3.3;
+      poseRed.position.x= 2.5;
+      poseRed.position.y= 3.7;
       poseRed.position.z= 1.5;
-      poseGreen.position.x= 3.2;
-      poseGreen.position.y= 3.9;
+      poseGreen.position.x= 2.5;
+      poseGreen.position.y= 3.1;
       poseGreen.position.z= 1.5;
-      // ROS_INFO_STREAM("[getNextPlacePosition] checking for model type: " << type); 
+      ROS_INFO_STREAM("[getNextPlacePosition] checking for model type: " << type); 
       if (logical_camera_2_img.models.empty()) {
-         if (type == "red_apple") {
+         if (type == "apple_red") {
             ROS_INFO_STREAM("[getNextPlacePosition] no models, return red"); 
             return poseRed;
          }
-         if (type == "green_apple") {
+         if (type == "apple_green") {
             ROS_INFO_STREAM("[getNextPlacePosition] no models, return green"); 
             return poseGreen;
          };
       }
-      nist_gear::Model lastModel;lastModel.type = "null";
+      nist_gear::Model lastModel;
+      lastModel.type = "null";
 
       std::vector<nist_gear::Model> LCmodels;
       for(nist_gear::Model model : logical_camera_2_img.models) {
@@ -158,6 +172,7 @@ public:
          LCmodels.push_back(model);
       }
       for(nist_gear::Model model : LCmodels) {
+         ROS_INFO_STREAM("[getNextPlacePosition] model type: " << model.type); 
          if (model.type == type) {
             if (lastModel.type == "null") lastModel = model;
             if (abs(lastModel.pose.position.y - model.pose.position.y) < 0.05) {
@@ -166,13 +181,17 @@ public:
          }
       }
       if (lastModel.type == "null") {
+         ROS_INFO_STREAM("[getNextPlacePosition] type was null"); 
          if (type.find("red") != std::string::npos) return poseRed;
          else return poseGreen;
       } else if (lastModel.pose.position.x + 0.2 > 3.8) {
-         lastModel.pose.position.x = 3.2;
+         ROS_INFO_STREAM("[getNextPlacePosition] found last model, new row " << lastModel.pose.position); 
+         lastModel.pose.position.x = 2.5;
          lastModel.pose.position.y += 0.2;
          return lastModel.pose;
       } else {
+         ROS_INFO_STREAM("[getNextPlacePosition] found last model, same row " << lastModel.pose.position); 
+         lastModel.pose.position.x += 0.2;
          lastModel.pose.position.z += 0.02;
          return lastModel.pose;
       }
@@ -196,9 +215,9 @@ public:
          pcl::PointXYZ color = getColorOfClosestPoint(point);
          if (model.type.find("apple") != std::string::npos) {
             if (color.x > color.y)
-               model.type = "red_apple";
+               model.type = "apple_red";
             else
-               model.type = "green_apple";
+               model.type = "apple_green";
             apples.push_back(model);
             colors.push_back(color);
          }
