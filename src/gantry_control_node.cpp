@@ -20,17 +20,17 @@ public:
             right_vacuum_gripper_state_subscriber = node.subscribe("/ariac/gantry/right_arm/gripper/state", 10, &GantryControl::right_arm_gripper_state_callback, this);
             left_vacuum_gripper_state_subscriber = node.subscribe("/ariac/gantry/left_arm/gripper/state", 10, &GantryControl::left_arm_gripper_state_callback, this);
 
-            gripperDown.x=0.0;
-            gripperDown.y=0.707;
-            gripperDown.z=0.0;
-            gripperDown.w=0.707;
+            gripperDown.x = 0.0;
+            gripperDown.y = 0.707;
+            gripperDown.z = 0.0;
+            gripperDown.w = 0.707;
       }
-
 
       nist_gear::Model pickPart()
       {
             controller::GetNextModel srv;
             getNextPart_client.call(srv);
+            ROS_INFO_STREAM("[pickPart] " << srv.response.nextModel);
             return srv.response.nextModel;
       }
 
@@ -39,6 +39,7 @@ public:
             controller::GetPlacePosition srv;
             srv.request.type = type;
             getNextPlacePosition_client.call(srv);
+            ROS_INFO_STREAM("[getPlacePosition] place position for " << type << " is " << srv.response.position);
             return srv.response.position;
       }
 
@@ -58,11 +59,24 @@ public:
             ROS_INFO_STREAM("[GantryControl][activateGripper " << onOff << "] DEBUG: srv.response =" << srv.response);
       }
 
-      void grabPart(std::string arm, geometry_msgs::Point targetPosition) {
+      void grabPart(std::string arm, geometry_msgs::Point targetPosition)
+      {
             moveit::planning_interface::MoveGroupInterface *moveGroup;
-            if (arm == "left") moveGroup = &move_group_la;
-            else if (arm == "right") moveGroup = &move_group_ra;
-            else {ROS_INFO_STREAM("[grabPart] Invalid arm ID!"); return;}
+            if (arm == "left")
+            {
+                  ROS_INFO_STREAM("[grabPart] Moving left arm");
+                  moveGroup = &move_group_la;
+            }
+            else if (arm == "right")
+            {
+                  ROS_INFO_STREAM("[grabPart] Moving right arm");
+                  moveGroup = &move_group_ra;
+            }
+            else
+            {
+                  ROS_INFO_STREAM("[grabPart] Invalid arm ID!");
+                  return;
+            }
             std::vector<geometry_msgs::Pose> waypoints;
             geometry_msgs::Pose waypoint;
             waypoint.position = targetPosition;
@@ -78,11 +92,14 @@ public:
             // waypoint.position.z += 0.15;
             // waypoints.push_back(waypoint);
             // ROS_INFO_STREAM("[grabPart] waypoint " << waypoints.size() <<": " << waypoint);
+            ROS_INFO_STREAM("[grabPart] Executing trajectory");
 
             moveGroup->execute(trajectoryFromWaypoints(*moveGroup, waypoints));
+            ROS_INFO_STREAM("[grabPart] After executing trajectory");
       }
 
-      moveit_msgs::RobotTrajectory trajectoryFromWaypoints(moveit::planning_interface::MoveGroupInterface &moveGroup, std::vector<geometry_msgs::Pose> waypoints){
+      moveit_msgs::RobotTrajectory trajectoryFromWaypoints(moveit::planning_interface::MoveGroupInterface &moveGroup, std::vector<geometry_msgs::Pose> waypoints)
+      {
             moveit_msgs::Constraints cons;
             moveit_msgs::OrientationConstraint ocons;
             ocons.header = moveGroup.getCurrentPose().header;
@@ -105,17 +122,29 @@ public:
                   ROS_INFO("[trajectoryFromWaypoint] Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
                   fraction = moveGroup.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, 1);
                   attempts++;
+                  if (std::abs(fraction - 1.0f) > 0.01)
+                  {
+                        std::vector<double> gantry_state = move_group_g.getCurrentJointValues();
+                        gantry_state[0] += 0.05;
+                        gantry_state[1] = -gantry_state[1];
+                        for (double joint : gantry_state )
+                        {
+                              ROS_INFO_STREAM("[trajectoryFromWaypoint] fraction < 1, moving full robot to " << joint);
+                        }
+                        move_full_robot(gantry_state, {}, {});
+                  }
             }
             trajectory.joint_trajectory.header.stamp = ros::Time::now();
             trajectory.multi_dof_joint_trajectory.header.stamp = ros::Time::now();
             return trajectory;
       }
 
-
-      void withdrawArm(std::string armID, bool afterGrab = true) {
+      void withdrawArm(std::string armID, bool afterGrab = true)
+      {
             nist_gear::VacuumGripperState *gripperState;
             moveit::planning_interface::MoveGroupInterface *moveGroup;
-            if (armID == "left") {
+            if (armID == "left")
+            {
                   moveGroup = &move_group_la;
                   gripperState = &leftVGS;
             }
@@ -130,20 +159,69 @@ public:
                   return;
             }
             geometry_msgs::Pose waypoint(moveGroup->getCurrentPose().pose);
-            waypoint.position.z +=0.2;
-            if (afterGrab) {
-                  while (!gripperState->attached) {
-                        ROS_INFO_STREAM("Apple not attached. Trying again...");
+            waypoint.position.z += 0.2;
+            if (afterGrab)
+            {
+                  ros::Duration(0.5).sleep();
+                  while (!gripperState->attached)
+                  {
+                        ROS_INFO_STREAM("[withdrawArm] Apple not attached. Trying again...");
                         std::vector<geometry_msgs::Pose> waypoints;
                         waypoints.push_back(waypoint);
-                        waypoint.position.z -=0.2;
+                        waypoint.position.z -= 0.2;
                         waypoints.push_back(waypoint);
                         moveGroup->execute(trajectoryFromWaypoints(*moveGroup, waypoints));
-                        waypoint.position.z +=0.2;
+                        waypoint.position.z += 0.2;
                         ros::Duration(1).sleep();
                   }
+                  moveit_msgs::AttachedCollisionObject aco;
+                  aco.object.id = "attachedApple";
+                  aco.object.header.frame_id = moveGroup->getEndEffectorLink();
+                  aco.link_name = moveGroup->getEndEffectorLink();
+                  geometry_msgs::Pose acoP;
+                  acoP.orientation.w = 1.0;
+                  shape_msgs::SolidPrimitive primitive;
+                  primitive.type = primitive.CYLINDER;
+                  primitive.dimensions.resize(3);
+                  primitive.dimensions[primitive.CYLINDER_HEIGHT] = 0.2;
+                  primitive.dimensions[primitive.CYLINDER_RADIUS] = 0.11;
+
+                  aco.object.primitives.push_back(primitive);
+                  aco.object.primitive_poses.push_back(acoP);
+
+                  aco.object.operation = aco.object.ADD;
+                  aps.request.scene.is_diff = true;
+                  planning_scene_interface.applyPlanningScene(aps.request.scene);
+
+            } else {
+                  moveit_msgs::AttachedCollisionObject aco;
+                  aco.object.id = "attachedApple";
+                  aco.object.header.frame_id = moveGroup->getEndEffectorLink();
+                  aco.link_name = moveGroup->getEndEffectorLink();
+                  aco.object.operation = aco.object.REMOVE;
+                  aps.request.scene.is_diff = true;
+                  planning_scene_interface.applyPlanningScene(aps.request.scene);
             }
             moveGroup->execute(trajectoryFromWaypoints(*moveGroup, {waypoint}));
+      }
+
+      void goAroundShelf(bool back = false)
+      {
+            if (back)
+            {
+                  move_full_robot(gantry_shelf_left, armsup_right, armsup_left);
+                  move_full_robot(gantry_shelf_around_3, {}, {});
+                  move_full_robot(gantry_shelf_around_2, {}, {});
+                  move_full_robot(gantry_shelf_around_1, armsup_right_shelf, armsup_left_shelf);
+            }
+            else
+            {
+                  move_full_robot(gantry_shelf_around_1, armsup_right, armsup_left);
+                  move_full_robot(gantry_shelf_around_2, {}, {});
+                  move_full_robot(gantry_shelf_around_3, {}, {});
+                  move_full_robot(gantry_shelf_left, {}, {});
+                  //move_full_robot({3.6, 4.8, PI/2},{},{});
+            }
       }
 
       void right_arm_gripper_state_callback(const nist_gear::VacuumGripperState::ConstPtr &state)
@@ -164,27 +242,39 @@ public:
             {
                   gantry_state[1] *= -1;
                   std::copy(gantry_state.begin(), gantry_state.end(), target.begin());
-                  ROS_INFO_STREAM("Setting Gantry joint targets");
+                  ROS_INFO_STREAM("[move_full_robot] Setting Gantry joint targets");
             }
             if (!left_arm_state.empty())
             {
                   std::copy(left_arm_state.begin(), left_arm_state.end(), target.begin() + 3);
-                  ROS_INFO_STREAM("Setting Left arm joint targets");
+                  ROS_INFO_STREAM("[move_full_robot] Setting Left arm joint targets");
             }
             if (!right_arm_state.empty())
             {
                   std::copy(right_arm_state.begin(), right_arm_state.end(), target.begin() + 3 + 6);
-                  ROS_INFO_STREAM("Setting Right arm joint targets");
+                  ROS_INFO_STREAM("[move_full_robot] Setting Right arm joint targets");
             }
+            // ROS_INFO_STREAM("[move_full_robot] goal joint tolerance: " << move_group_fr.getGoalJointTolerance());
+            for (double joint : move_group_fr.getCurrentJointValues())
+            ROS_INFO_STREAM("[move_full_robot] current joint state: " << joint);
+            for (double joint : target)
+            ROS_INFO_STREAM("[move_full_robot] target joint state: " << joint);
+            //ROS_INFO_STREAM("[move_full_robot] target joint state: " << move_group_fr.getJointValueTarget());
+
             move_group_fr.setJointValueTarget(target);
+            // move_group_fr.setGoalTolerance(0.02);
             move_group_fr.move();
-            ROS_INFO_STREAM("Full Robot moved");
+            ROS_INFO_STREAM("[move_full_robot] Full Robot moved");
       }
 
       moveit::planning_interface::MoveGroupInterface move_group_ra = moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_RIGHT_ARM);
-      moveit::planning_interface::MoveGroupInterface move_group_la = moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_LEFT_ARM); 
+      moveit::planning_interface::MoveGroupInterface move_group_la = moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_LEFT_ARM);
       moveit::planning_interface::MoveGroupInterface move_group_fr = moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_FULL_ROBOT);
       moveit::planning_interface::MoveGroupInterface move_group_g = moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_GANTRY);
+      std::string arm_to_use = "";
+      moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+      moveit_msgs::ApplyPlanningScene aps;
+
 private:
       ros::ServiceClient left_gripper_control_client, right_gripper_control_client;
       ros::ServiceClient getNextPart_client;
@@ -220,25 +310,40 @@ int main(int argc, char **argv)
       planning_scene_get_client =
           node.serviceClient<moveit_msgs::GetPlanningScene>("get_planning_scene");
       planning_scene_get_client.waitForExistence();
-
+      
       moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
       moveit_msgs::ApplyPlanningScene aps;
       aps.request.scene.is_diff = true;
       planning_scene_interface.applyPlanningScene(aps.request.scene);
       planning_scene_diff_client.call(aps);
-
+      // nist_gear::Model testModel;
+      // testModel.type = "green_apple";
+      // gantry.move_group_fr.getPlanningTime();
+      gantry.move_group_fr.setMaxAccelerationScalingFactor(1.0);
+      gantry.move_group_fr.setMaxVelocityScalingFactor(1.0);
       //move robot to bin
       while (ros::ok())
       {
             nist_gear::Model nextModel = gantry.pickPart();
-            if (nextModel.type == "null") {ros::Duration(1).sleep(); continue;}
-            bool test = true;
+            if (nextModel.type == "null")
+            {
+                  ros::Duration(1).sleep();
+                  continue;
+            }
+            else if (nextModel.type.find("green") != std::string::npos)
+            {
+                  gantry.arm_to_use = "left";
+            }
+            else if (nextModel.type.find("red") != std::string::npos)
+            {
+                  gantry.arm_to_use = "right";
+            }
+            ROS_INFO_STREAM("NextModel " << nextModel << "\n arm_to_use " << gantry.arm_to_use);
+            bool test = false;
             if (test)
-            {      
-                  gantry.move_full_robot(gantry_shelf_around_1, armsup_right,armsup_left_shelf);
-                  gantry.move_full_robot(gantry_shelf_around_2,{},{});
-                  gantry.move_full_robot(gantry_shelf_left,armsup_right_shelf,{});
-                  gantry.move_full_robot({3.6, 4.8, PI/2},{},{});
+            {
+                  gantry.goAroundShelf();
+                  //gantry.goAroundShelf(1);
                   // move_group_ra.setGoalTolerance(0.1);
                   // move_group_ra.setGoalOrientationTolerance(0.1);
                   // ROS_INFO_STREAM("starting pose: " << gantry.move_group_fr.getCurrentPose());
@@ -261,41 +366,49 @@ int main(int argc, char **argv)
                   //       ROS_INFO_STREAM("[ArmControl][reachTarget] planning_success = " << std::to_string(planning_success) << ", attempts: " << attempts << std::endl);
                   // }
                   // ROS_INFO_STREAM("[test] gantry target " << target<< "move success: " << gantry.move_group_fr.execute(my_plan));
-                  gantry.grabPart("right", gantry.getPlacePosition("apple_green").position);
-
+                  //gantry.grabPart("right", gantry.getPlacePosition("apple_green").position);
             }
-            else
+            // ROS_INFO_STREAM("gantry.move_group_fr.getCurrentJointValues()[1] " << gantry.move_group_fr.getCurrentJointValues()[1]);
+            if (-gantry.move_group_fr.getCurrentJointValues()[1] > 3.6)
+            {
+                  gantry.goAroundShelf(1);
+            }
+            if (gantry.arm_to_use == "right") {
+                  ROS_INFO_STREAM("moving robot to right arm grab position");
                   gantry.move_full_robot({nextModel.pose.position.x + 0.4, nextModel.pose.position.y - 0.4, 0.0}, armsup_right_shelf, armsup_left_shelf);
-
+            } else {
+                  ROS_INFO_STREAM("moving robot to left arm grab position");
+                  gantry.move_full_robot({nextModel.pose.position.x + 0.8, nextModel.pose.position.y + 0.4, PI}, armsup_right_shelf, armsup_left_shelf);
+            }
             //grab apple
-            gantry.gripperControl("right", true);
-            gantry.grabPart("right", nextModel.pose.position);
-            gantry.withdrawArm("right");
+            gantry.gripperControl(gantry.arm_to_use, true);
+            ROS_INFO_STREAM("before grab part");
+            gantry.grabPart(gantry.arm_to_use, nextModel.pose.position);
+            gantry.withdrawArm(gantry.arm_to_use);
 
-            moveit_msgs::AttachedCollisionObject aco;
-            aco.object.id = "attachedApple";
-            aco.object.header.frame_id = gantry.move_group_ra.getEndEffectorLink();
-            aco.link_name = gantry.move_group_ra.getEndEffectorLink();
-            geometry_msgs::Pose acoP;
-            acoP.orientation.w = 1.0;
-            shape_msgs::SolidPrimitive primitive;
-            primitive.type = primitive.CYLINDER;
-            primitive.dimensions.resize(3);
-            primitive.dimensions[primitive.CYLINDER_HEIGHT] = 0.2;
-            primitive.dimensions[primitive.CYLINDER_RADIUS] = 0.11;
+            // moveit_msgs::AttachedCollisionObject aco;
+            // aco.object.id = "attachedApple";
+            // aco.object.header.frame_id = gantry.move_group_ra.getEndEffectorLink();
+            // aco.link_name = gantry.move_group_ra.getEndEffectorLink();
+            // geometry_msgs::Pose acoP;
+            // acoP.orientation.w = 1.0;
+            // shape_msgs::SolidPrimitive primitive;
+            // primitive.type = primitive.CYLINDER;
+            // primitive.dimensions.resize(3);
+            // primitive.dimensions[primitive.CYLINDER_HEIGHT] = 0.2;
+            // primitive.dimensions[primitive.CYLINDER_RADIUS] = 0.11;
 
-            aco.object.primitives.push_back(primitive);
-            aco.object.primitive_poses.push_back(acoP);
+            // aco.object.primitives.push_back(primitive);
+            // aco.object.primitive_poses.push_back(acoP);
 
-            aco.object.operation = aco.object.ADD;
-            aps.request.scene.is_diff = true;
-            planning_scene_interface.applyPlanningScene(aps.request.scene);
+            // aco.object.operation = aco.object.ADD;
+            // aps.request.scene.is_diff = true;
+            // planning_scene_interface.applyPlanningScene(aps.request.scene);
 
             // // lift arm after grabbing apple
             // double fraction;
             // moveit_msgs::RobotTrajectory trajectory;
             // std::vector<geometry_msgs::Pose> waypoints;
-            geometry_msgs::Pose tP;
             // tP.position = nextModel.pose.position;
             // tP.position.z +=  0.05;
             // const double jump_threshold = 0.0;
@@ -319,20 +432,23 @@ int main(int argc, char **argv)
             // }
             // gantry.move_group_ra.execute(trajectory);
 
+            geometry_msgs::Pose tP;
             tP.position = gantry.getPlacePosition(nextModel.type).position;
             if (tP.position.y < 3.6)
             { //másik polc közepe y = -3.6
                   tP.position.z += 0.02;
-                  gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, {});
-            } else {
-                  
+                  gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, armsup_left_shelf);
             }
-            gantry.grabPart("right", tP.position);
-            gantry.gripperControl("right", false);
+            else
+            {
+                  gantry.goAroundShelf();
+            }
+            gantry.grabPart(gantry.arm_to_use, tP.position);
+            gantry.gripperControl(gantry.arm_to_use, false);
             // ROS_INFO_STREAM("placePart complete");
-            gantry.withdrawArm("right", false);
+            gantry.withdrawArm(gantry.arm_to_use, false);
 
-            gantry.move_full_robot({}, armsup_right_shelf, {});
+            gantry.move_full_robot({}, armsup_right, armsup_left);
       }
 
       spinner.stop();

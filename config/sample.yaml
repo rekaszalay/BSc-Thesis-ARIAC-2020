@@ -14,6 +14,7 @@ models_over_bins:
    bin1:
      models:
        apple_red:
+       #gear_part_red:
          xyz_start: [0.2, 0.2, 0.0]
          xyz_end: [0.4, 0.4, 0.0]
          rpy: [0, 0, 0]

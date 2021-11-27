@@ -52,7 +52,6 @@ public:
 
    }
 
-
    void logical_camera_1_callback(const nist_gear::LogicalCameraImage::ConstPtr &image_msg) {
       ROS_INFO_STREAM_THROTTLE(10,
          "Logical camera 1: '" << image_msg->models.size() << "' objects.");
@@ -76,7 +75,7 @@ public:
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
       pcl::fromROSMsg(rgbd_cam_screenshot, *pc);
       kdtree.setInputCloud(pc);
-      int howManyPointsDoWeNeedBack = 1;
+      int howManyPointsDoWeNeedBack = 4;
       std::vector<int> resultPtIdx(howManyPointsDoWeNeedBack);
       std::vector<float> ezCsakKell(howManyPointsDoWeNeedBack);
       pcl::PointXYZ result(0.0f, 0.0f, 0.0f);
@@ -87,16 +86,18 @@ public:
             result.x += pc->points.at(point).b;
             result.y += pc->points.at(point).g;
             result.z += pc->points.at(point).r;
-            geometry_msgs::Pose p;
-            p.position.x = pc->points.at(point).x;
-            p.position.y = pc->points.at(point).y;
-            p.position.z = pc->points.at(point).z;
-            p = convert_to_frame(p, rgbd_camera_1_img.header.frame_id, "world");
+            // geometry_msgs::Pose p;
+            // p.position.x = pc->points.at(point).x;
+            // p.position.y = pc->points.at(point).y;
+            // p.position.z = pc->points.at(point).z;
+            // p = convert_to_frame(p, rgbd_camera_1_img.header.frame_id, "world");
+            ROS_INFO_STREAM("[getColorOfClosestPoint] points " << pc->points.at(point));
          }
       }
-      result.x;
-      result.y;
-      result.z;
+      result.x /= 4;
+      result.y /= 4;
+      result.z /= 4;
+      ROS_INFO_STREAM("[getColorOfClosestPoint] result : " <<result);
       return result;
    }
 
@@ -114,10 +115,9 @@ public:
       {  
          rgbd_cam_screenshot = rgbd_camera_1_img;
          for (nist_gear::Model model : logical_camera_models) {
-            if (model.type.find("apple") != std::string::npos){
-               nextModel = model;
-               break;
-            }
+               // if (model.type.find("green") != std::string::npos)
+               {nextModel = model;
+               break;}
          }
          if (nextModel.type == "null")
          {
@@ -125,12 +125,13 @@ public:
             return nextModel;
          }
          nextModel.pose = convert_to_frame(nextModel.pose, "logical_camera_1_frame", "world");
-         nextModel.pose.position.z = nextModel.pose.position.z;
+         nextModel.pose.position.z += 0.05;
          nextModel.pose = convert_to_frame(nextModel.pose, "world", rgbd_camera_1_img.header.frame_id);
          pcl::PointXYZRGB point;
          point.x = nextModel.pose.position.x;
          point.y = nextModel.pose.position.y;
          point.z = nextModel.pose.position.z;
+         ROS_INFO_STREAM("[getNextItemToMove] point of color search: " << point);
 
          pcl::PointXYZ color = getColorOfClosestPoint(point);
          if (nextModel.type.find("apple") != std::string::npos) {
@@ -140,6 +141,7 @@ public:
                nextModel.type = "apple_green";
          }
          nextModel.pose = convert_to_frame(nextModel.pose, rgbd_camera_1_img.header.frame_id, "world");
+         nextModel.pose.position.z -= 0.05;
          return nextModel;
       }
    }
@@ -150,7 +152,7 @@ public:
       poseRed.position.y= 3.1;
       poseRed.position.z= 1.5;
       poseGreen.position.x= 2.5;
-      poseGreen.position.y= 3.7;
+      poseGreen.position.y= 3.95;
       poseGreen.position.z= 1.5;
       ROS_INFO_STREAM("[getNextPlacePosition] checking for model type: " << type); 
       if (logical_camera_2_img.models.empty()) {
@@ -181,7 +183,7 @@ public:
          }
       }
       if (lastModel.type == "null") {
-         ROS_INFO_STREAM("[getNextPlacePosition] type was null"); 
+         ROS_INFO_STREAM("[getNextPlacePosition] camera sees no " << type); 
          if (type.find("red") != std::string::npos) return poseRed;
          else return poseGreen;
       } else if (lastModel.pose.position.x + 0.2 > 3.8) {
