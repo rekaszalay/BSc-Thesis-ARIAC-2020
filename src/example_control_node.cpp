@@ -91,13 +91,13 @@ public:
             // p.position.y = pc->points.at(point).y;
             // p.position.z = pc->points.at(point).z;
             // p = convert_to_frame(p, rgbd_camera_1_img.header.frame_id, "world");
-            ROS_INFO_STREAM("[getColorOfClosestPoint] points " << pc->points.at(point));
+            // ROS_INFO_STREAM("[getColorOfClosestPoint] points " << pc->points.at(point));
          }
       }
       result.x /= 4;
       result.y /= 4;
       result.z /= 4;
-      ROS_INFO_STREAM("[getColorOfClosestPoint] result : " <<result);
+      // ROS_INFO_STREAM("[getColorOfClosestPoint] result : " <<result);
       return result;
    }
 
@@ -131,7 +131,7 @@ public:
          point.x = nextModel.pose.position.x;
          point.y = nextModel.pose.position.y;
          point.z = nextModel.pose.position.z;
-         ROS_INFO_STREAM("[getNextItemToMove] point of color search: " << point);
+         // ROS_INFO_STREAM("[getNextItemToMove] point of color search: " << point);
 
          pcl::PointXYZ color = getColorOfClosestPoint(point);
          if (nextModel.type.find("apple") != std::string::npos) {
@@ -154,7 +154,7 @@ public:
       poseGreen.position.x= 2.5;
       poseGreen.position.y= 3.95;
       poseGreen.position.z= 1.5;
-      ROS_INFO_STREAM("[getNextPlacePosition] checking for model type: " << type); 
+      // ROS_INFO_STREAM("[getNextPlacePosition] checking for model type: " << type); 
       if (logical_camera_2_img.models.empty()) {
          if (type == "apple_red") {
             ROS_INFO_STREAM("[getNextPlacePosition] no models, return red"); 
@@ -174,7 +174,7 @@ public:
          LCmodels.push_back(model);
       }
       for(nist_gear::Model model : LCmodels) {
-         ROS_INFO_STREAM("[getNextPlacePosition] model type: " << model.type); 
+         // ROS_INFO_STREAM("[getNextPlacePosition] model type: " << model.type); 
          if (model.type == type) {
             if (lastModel.type == "null") lastModel = model;
             if (abs(lastModel.pose.position.y - model.pose.position.y) < 0.05) {

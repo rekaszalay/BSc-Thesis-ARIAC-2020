@@ -4,17 +4,10 @@ options:
   insert_models_over_shelves: true
   belt_population_cycles: 0
 
-#shelf_layout:
-#  row_1: ['base',0,'collar','base'] #shelves: 3, 4, 5
-#  row_2: [0, 'pipe','base','base']   #shelves: 6, 7, 8
-#  row_3: ['base','pipe',0,'collar'] #shelves: 9, 10, 11
-
-
 models_over_bins:
    bin1:
      models:
        apple_red:
-       #gear_part_red:
          xyz_start: [0.2, 0.2, 0.0]
          xyz_end: [0.4, 0.4, 0.0]
          rpy: [0, 0, 0]
@@ -28,27 +21,5 @@ models_over_bins:
          rpy: [0, 0, 'pi/4']
          num_models_x: 2
          num_models_y: 3
-
-#models_over_shelves:
-#  shelf1:
-#    models:
-#      gear_part_red:
-#        xyz_start: [-1.5, -0.5, 0.0]
-#        xyz_end: [-1.0, -0.5, 0.0]
-#        rpy: [0, 0, 0]
-#        num_models_x: 5
-#        num_models_y: 1
-
-#belt_models:
-#  piston_rod_part_blue:
-#    1.0:
-#      pose:
-#        xyz: [0.0, 4.3, 0.92]
-#        rpy: [0, 0, 'pi/2']
-#  gear_part_red:
-#    2.0:
-#      pose:
-#        xyz: [0.0, 4.3, 0.92]
-#        rpy: [0, 0, 'pi/2']
 
 time_limit: -1

@@ -255,10 +255,10 @@ public:
                   ROS_INFO_STREAM("[move_full_robot] Setting Right arm joint targets");
             }
             // ROS_INFO_STREAM("[move_full_robot] goal joint tolerance: " << move_group_fr.getGoalJointTolerance());
-            for (double joint : move_group_fr.getCurrentJointValues())
-            ROS_INFO_STREAM("[move_full_robot] current joint state: " << joint);
-            for (double joint : target)
-            ROS_INFO_STREAM("[move_full_robot] target joint state: " << joint);
+            // for (double joint : move_group_fr.getCurrentJointValues())
+            // ROS_INFO_STREAM("[move_full_robot] current joint state: " << joint);
+            // for (double joint : target)
+            // ROS_INFO_STREAM("[move_full_robot] target joint state: " << joint);
             //ROS_INFO_STREAM("[move_full_robot] target joint state: " << move_group_fr.getJointValueTarget());
 
             move_group_fr.setJointValueTarget(target);
