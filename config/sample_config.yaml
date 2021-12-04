@@ -5,6 +5,7 @@ sensors:
     pose:
       xyz: [3.1, 1.85, 1.7]
       rpy: [0, 1.5707, 0]
+      
   rgbd_camera_1:
     type: rgbd_camera
     pose:

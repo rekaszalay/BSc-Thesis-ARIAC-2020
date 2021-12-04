@@ -1,7 +1,7 @@
 # Competition configuration options
 options:
   insert_models_over_bins: true
-  insert_models_over_shelves: true
+  insert_models_over_shelves: false
   belt_population_cycles: 0
 
 models_over_bins:
