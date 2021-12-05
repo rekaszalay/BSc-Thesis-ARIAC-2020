@@ -75,11 +75,11 @@ public:
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc(new pcl::PointCloud<pcl::PointXYZRGB>);
       pcl::fromROSMsg(rgbd_cam_screenshot, *pc);
       kdtree.setInputCloud(pc);
-      int howManyPointsDoWeNeedBack = 4;
-      std::vector<int> resultPtIdx(howManyPointsDoWeNeedBack);
-      std::vector<float> ezCsakKell(howManyPointsDoWeNeedBack);
+      int numberOfNearestPts = 4;
+      std::vector<int> resultPtIdx(numberOfNearestPts);
+      std::vector<float> pointSquareDist(numberOfNearestPts);
       pcl::PointXYZ result(0.0f, 0.0f, 0.0f);
-      if (kdtree.nearestKSearch(point, howManyPointsDoWeNeedBack, resultPtIdx, ezCsakKell) > 0)
+      if (kdtree.nearestKSearch(point, numberOfNearestPts, resultPtIdx, pointSquareDist) > 0)
       {
          for (int point : resultPtIdx)
          {
