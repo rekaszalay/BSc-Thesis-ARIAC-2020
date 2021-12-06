@@ -30,7 +30,7 @@ public:
       {
             controller::GetNextModel srv;
             getNextPart_client.call(srv);
-            ROS_INFO_STREAM("[pickPart] " << srv.response.nextModel);
+            ROS_INFO_STREAM("[pickPart] next model to pick is " << srv.response.nextModel.type);
             return srv.response.nextModel;
       }
 
@@ -39,7 +39,7 @@ public:
             controller::GetPlacePosition srv;
             srv.request.type = type;
             getNextPlacePosition_client.call(srv);
-            ROS_INFO_STREAM("[getPlacePosition] place position for " << type << " is " << srv.response.position);
+            ROS_INFO_STREAM("[getPlacePosition] place position for " << type);
             return srv.response.position;
       }
 
@@ -204,14 +204,14 @@ public:
       {
             if (back)
             {
-                  move_full_robot(gantry_shelf_left, armsup_right, armsup_left);
+                  move_full_robot(gantry_shelf_left, right_arm_moving, left_arm_moving);
                   move_full_robot(gantry_shelf_around_3, {}, {});
                   move_full_robot(gantry_shelf_around_2, {}, {});
-                  move_full_robot(gantry_shelf_around_1, armsup_right_shelf, armsup_left_shelf);
+                  move_full_robot(gantry_shelf_around_1, right_arm_shelf, left_arm_shelf);
             }
             else
             {
-                  move_full_robot(gantry_shelf_around_1, armsup_right, armsup_left);
+                  move_full_robot(gantry_shelf_around_1, right_arm_moving, left_arm_moving);
                   move_full_robot(gantry_shelf_around_2, {}, {});
                   move_full_robot(gantry_shelf_around_3, {}, {});
                   move_full_robot(gantry_shelf_left, {}, {});
@@ -290,26 +290,25 @@ int main(int argc, char **argv)
             ros::Duration(1.0).sleep();
             ROS_INFO("waiting...");
       }
-
-      // planning_scene_diff_client = node.serviceClient<moveit_msgs::ApplyPlanningScene>("apply_planning_scene");
-      // planning_scene_diff_client.waitForExistence();
-
-      // planning_scene_get_client = node.serviceClient<moveit_msgs::GetPlanningScene>("get_planning_scene");
-      // planning_scene_get_client.waitForExistence();
       
       gantry.move_group_fr.setMaxAccelerationScalingFactor(1.0);
       gantry.move_group_fr.setMaxVelocityScalingFactor(1.0);
+      gantry.move_group_la.setMaxAccelerationScalingFactor(1.0);
+      gantry.move_group_la.setMaxVelocityScalingFactor(1.0);
+      gantry.move_group_ra.setMaxAccelerationScalingFactor(1.0);
+      gantry.move_group_ra.setMaxVelocityScalingFactor(1.0);
 
       //move robot to bin
       while (ros::ok())
       {
             nist_gear::Model nextModel = gantry.pickPart();
-            if (nextModel.type == "null")
+            while (nextModel.type == "null")
             {
+                  ROS_INFO_STREAM("No next model. Waiting...");
                   ros::Duration(1).sleep();
-                  continue;
+                  nextModel = gantry.pickPart();
             }
-            else if (nextModel.type.find("green") != std::string::npos)
+            if (nextModel.type.find("green") != std::string::npos)
             {
                   gantry.arm_to_use = "left";
             }
@@ -330,10 +329,10 @@ int main(int argc, char **argv)
             }
             if (gantry.arm_to_use == "right") {
                   ROS_INFO_STREAM("moving robot to right arm grab position");
-                  gantry.move_full_robot({nextModel.pose.position.x + 0.4, nextModel.pose.position.y - 0.4, 0.0}, armsup_right_shelf, armsup_left_shelf);
+                  gantry.move_full_robot({nextModel.pose.position.x + 0.4, nextModel.pose.position.y - 0.4, 0.0}, right_arm_shelf, left_arm_shelf);
             } else {
                   ROS_INFO_STREAM("moving robot to left arm grab position");
-                  gantry.move_full_robot({nextModel.pose.position.x + 0.8, nextModel.pose.position.y + 0.4, PI}, armsup_right_shelf, armsup_left_shelf);
+                  gantry.move_full_robot({nextModel.pose.position.x + 0.8, nextModel.pose.position.y + 0.4, PI}, right_arm_shelf, left_arm_shelf);
             }
 
             //grab apple
@@ -346,7 +345,7 @@ int main(int argc, char **argv)
             if (tP.position.y < 3.6)
             {
                   tP.position.z += 0.02;
-                  gantry.move_full_robot(gantry_shelf_right, armsup_right_shelf, armsup_left_shelf);
+                  gantry.move_full_robot(gantry_shelf_right, right_arm_shelf, left_arm_shelf);
             }
             else
             {
@@ -356,7 +355,7 @@ int main(int argc, char **argv)
             gantry.gripperControl(gantry.arm_to_use, false);
             gantry.withdrawArm(gantry.arm_to_use, false);
 
-            gantry.move_full_robot({}, armsup_right, armsup_left);
+            gantry.move_full_robot({}, right_arm_shelf, left_arm_shelf);
       }
 
       spinner.stop();

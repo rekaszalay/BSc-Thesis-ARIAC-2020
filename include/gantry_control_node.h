@@ -19,10 +19,8 @@ static const std::string PLANNING_GROUP_LEFT_ARM = "Left_Arm";
 
 const double EPS = 0.1;
 
-std::vector<double> armsup_left = {PI / 2, 0 - EPS, PI / 2 + EPS, PI / 2, 0, 0};
-std::vector<double> armsup_right = {-PI / 2, -PI + EPS, -PI / 2 - EPS, PI / 2, 0, 0};
-
-std::vector<double> gantry_bin = {2.9, 0.7, 0};
+std::vector<double> left_arm_moving = {PI / 2, 0 - EPS, PI / 2 + EPS, PI / 2, 0, 0};
+std::vector<double> right_arm_moving = {-PI / 2, -PI + EPS, -PI / 2 - EPS, PI / 2, 0, 0};
 
 std::vector<double> gantry_shelf_around_1 = {0.6, 2.0, PI/2};
 std::vector<double> gantry_shelf_around_2 = {0.6, 5.0, PI};
@@ -31,5 +29,5 @@ std::vector<double> gantry_shelf_around_3 = {3.6, 5.0, PI};
 std::vector<double> gantry_shelf_right = {3.6, 2.4, 0};
 std::vector<double> gantry_shelf_left = {3.6, 4.8, PI};
 
-std::vector<double> armsup_left_shelf = {PI / 2, -PI / 2, 2.7, PI / 2, 0, 0};
-std::vector<double> armsup_right_shelf = {-PI / 2, -PI / 2, -2.7, PI / 2, 0, 0};
+std::vector<double> left_arm_shelf = {PI / 2, -PI / 2, 2.7, PI / 2, 0, 0};
+std::vector<double> right_arm_shelf = {-PI / 2, -PI / 2, -2.7, PI / 2, 0, 0};
