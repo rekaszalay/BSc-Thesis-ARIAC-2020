@@ -204,8 +204,7 @@ public:
       {
             if (back)
             {
-                  move_full_robot(gantry_shelf_left, right_arm_moving, left_arm_moving);
-                  move_full_robot(gantry_shelf_around_3, {}, {});
+                  move_full_robot(gantry_shelf_around_3, right_arm_moving, left_arm_moving);
                   move_full_robot(gantry_shelf_around_2, {}, {});
                   move_full_robot(gantry_shelf_around_1, right_arm_shelf, left_arm_shelf);
             }
@@ -293,10 +292,6 @@ int main(int argc, char **argv)
       
       gantry.move_group_fr.setMaxAccelerationScalingFactor(1.0);
       gantry.move_group_fr.setMaxVelocityScalingFactor(1.0);
-      gantry.move_group_la.setMaxAccelerationScalingFactor(1.0);
-      gantry.move_group_la.setMaxVelocityScalingFactor(1.0);
-      gantry.move_group_ra.setMaxAccelerationScalingFactor(1.0);
-      gantry.move_group_ra.setMaxVelocityScalingFactor(1.0);
 
       //move robot to bin
       while (ros::ok())
@@ -344,18 +339,19 @@ int main(int argc, char **argv)
             tP.position = gantry.getPlacePosition(nextModel.type).position;
             if (tP.position.y < 3.6)
             {
-                  tP.position.z += 0.02;
                   gantry.move_full_robot(gantry_shelf_right, right_arm_shelf, left_arm_shelf);
             }
             else
             {
                   gantry.goAroundShelf();
             }
+
+            //put down apple
             gantry.grabPart(gantry.arm_to_use, tP.position);
             gantry.gripperControl(gantry.arm_to_use, false);
             gantry.withdrawArm(gantry.arm_to_use, false);
 
-            gantry.move_full_robot({}, right_arm_shelf, left_arm_shelf);
+            //gantry.move_full_robot({}, right_arm_shelf, left_arm_shelf);
       }
 
       spinner.stop();

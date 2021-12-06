@@ -108,6 +108,7 @@ public:
       {  
          rgbd_cam_screenshot = rgbd_camera_1_img;
          for (nist_gear::Model model : logical_camera_models) {
+               //if (model.type.find("green") != std::string::npos)
                {nextModel = model;
                break;}
          }
@@ -179,14 +180,15 @@ public:
          ROS_INFO_STREAM("[getNextPlacePosition] found last model, new row " << lastModel.pose.position); 
          lastModel.pose.position.x = 2.5;
          lastModel.pose.position.y += 0.2;
+         lastModel.pose.position.z += 0.1;
          return lastModel.pose;
       } else {
          ROS_INFO_STREAM("[getNextPlacePosition] found last model, same row " << lastModel.pose.position); 
          lastModel.pose.position.x += 0.2;
-         lastModel.pose.position.z += 0.02;
+         lastModel.pose.position.z += 0.1;
          return lastModel.pose;
       }
-
+      ROS_INFO_STREAM("[[getNextPlacePosition] HOW DID I GET HERE?? " << lastModel);
    }
 
    bool testCameras() {
