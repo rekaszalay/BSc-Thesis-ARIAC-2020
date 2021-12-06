@@ -206,7 +206,7 @@ public:
             {
                   move_full_robot(gantry_shelf_around_3, right_arm_moving, left_arm_moving);
                   move_full_robot(gantry_shelf_around_2, {}, {});
-                  move_full_robot(gantry_shelf_around_1, right_arm_shelf, left_arm_shelf);
+                  move_full_robot(gantry_shelf_around_1, {}, {});
             }
             else
             {

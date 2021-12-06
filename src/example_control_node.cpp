@@ -188,7 +188,6 @@ public:
          lastModel.pose.position.z += 0.1;
          return lastModel.pose;
       }
-      ROS_INFO_STREAM("[[getNextPlacePosition] HOW DID I GET HERE?? " << lastModel);
    }
 
    bool testCameras() {
